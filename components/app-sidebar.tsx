@@ -16,6 +16,8 @@ import {
   SidebarMenuItem,
 } from "@/components/ui/sidebar"
 import { LayoutDashboardIcon, ListIcon, ChartBarIcon, FolderIcon, UsersIcon, CameraIcon, FileTextIcon, Settings2Icon, CircleHelpIcon, SearchIcon, DatabaseIcon, FileChartColumnIcon, FileIcon, CommandIcon } from "lucide-react"
+import { Icon, Trophy } from 'lucide-react';
+import { soccerBall } from '@lucide/lab';
 
 const data = {
   user: {
@@ -30,6 +32,13 @@ const data = {
       icon: (
         <LayoutDashboardIcon
         />
+      ),
+    },
+    {
+      title: "Campeonato",
+      url: "/dashboard/campeonato",
+      icon: (
+        <Trophy/>
       ),
     },
     {
@@ -186,9 +195,9 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
               asChild
               className="data-[slot=sidebar-menu-button]:p-1.5!"
             >
-              <a href="#">
-                <CommandIcon className="size-5!" />
-                <span className="text-base font-semibold">Acme Inc.</span>
+              <a href="#">                
+                <Icon iconNode={soccerBall} className="size-5!"/>
+                <span className="text-base font-semibold">Futbol Manager.</span>
               </a>
             </SidebarMenuButton>
           </SidebarMenuItem>
