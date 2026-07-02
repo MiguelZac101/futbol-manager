@@ -9,6 +9,7 @@ import {
   SidebarMenuItem,
 } from "@/components/ui/sidebar"
 
+import { SignInButton, SignUpButton, Show, UserButton } from "@clerk/nextjs";
 
 export function NavMain({
   items,
@@ -22,7 +23,7 @@ export function NavMain({
   return (
     <SidebarGroup>
       <SidebarGroupContent className="">   
-        <SidebarGroupLabel>Dashboard</SidebarGroupLabel>     
+        <SidebarGroupLabel>Dashboard</SidebarGroupLabel>        
         <SidebarMenu>
           {items.map((item) => (
             <SidebarMenuItem key={item.title}>

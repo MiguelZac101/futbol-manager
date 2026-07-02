@@ -1,7 +1,7 @@
-import { Button } from "@/components/ui/button"
 import { Separator } from "@/components/ui/separator"
 import { SidebarTrigger } from "@/components/ui/sidebar"
 import { ThemeToggle } from "@/components/theme-toggle"
+import { Show, UserButton } from "@clerk/nextjs"
 
 export function SiteHeader() {
   return (
@@ -15,7 +15,13 @@ export function SiteHeader() {
           />
           <h1 className="text-base font-medium">Documents</h1>
         </div>
-        <ThemeToggle />
+        <div className="flex items-end gap-2">
+          <ThemeToggle />
+          <Show when="signed-in">
+            <UserButton afterSignOutUrl="/" />
+          </Show>
+        </div>
+        
       </div>
     </header>
   )
