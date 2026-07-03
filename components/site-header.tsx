@@ -18,9 +18,7 @@ export function SiteHeader() {
         <div className="flex items-center gap-2 ml-auto">
           <ThemeToggle />
           <Show when="signed-in">            
-              <UserButton
-                afterSignOutUrl="/"                
-              />            
+              <UserButton/>            
           </Show>
         </div>
         
