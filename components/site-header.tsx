@@ -15,10 +15,12 @@ export function SiteHeader() {
           />
           <h1 className="text-base font-medium">Documents</h1>
         </div>
-        <div className="flex items-end gap-2">
+        <div className="flex items-center gap-2 ml-auto">
           <ThemeToggle />
-          <Show when="signed-in">
-            <UserButton afterSignOutUrl="/" />
+          <Show when="signed-in">            
+              <UserButton
+                afterSignOutUrl="/"                
+              />            
           </Show>
         </div>
         
