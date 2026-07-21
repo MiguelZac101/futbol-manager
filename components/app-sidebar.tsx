@@ -36,43 +36,12 @@ const data = {
     },
     {
       title: "Campeonato",
-      url: "/dashboard/campeonato",
+      url: "/campeonato",
       icon: (
         <Trophy/>
       ),
     },
-    {
-      title: "Lifecycle",
-      url: "#",
-      icon: (
-        <ListIcon
-        />
-      ),
-    },
-    {
-      title: "Analytics",
-      url: "#",
-      icon: (
-        <ChartBarIcon
-        />
-      ),
-    },
-    {
-      title: "Projects",
-      url: "#",
-      icon: (
-        <FolderIcon
-        />
-      ),
-    },
-    {
-      title: "Team",
-      url: "#",
-      icon: (
-        <UsersIcon
-        />
-      ),
-    },
+    
   ],
   navClouds: [
     {
