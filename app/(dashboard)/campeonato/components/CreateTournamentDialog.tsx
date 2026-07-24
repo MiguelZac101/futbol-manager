@@ -1,15 +1,18 @@
+"use client"
+
+import { useState, useTransition } from "react"
 import {
   Dialog,
   DialogContent,
   DialogDescription,
   DialogHeader,
   DialogTitle,
-  DialogTrigger,
   DialogFooter,
 } from "@/components/ui/dialog"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
+import { createTournament } from "../actions"
 
 interface CreateTournamentDialogProps {
   open: boolean
@@ -17,6 +20,23 @@ interface CreateTournamentDialogProps {
 }
 
 export function CreateTournamentDialog({ open, onOpenChange }: CreateTournamentDialogProps) {
+  const [isPending, startTransition] = useTransition()
+  const [error, setError] = useState<string | null>(null)
+
+  function handleSubmit(formData: FormData) {
+    startTransition(async () => {
+      const result = await createTournament(formData)
+
+      if (result?.error) {
+        setError(result.error)
+        return
+      }
+
+      setError(null)
+      onOpenChange(false)
+    })
+  }
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-md">
@@ -27,17 +47,21 @@ export function CreateTournamentDialog({ open, onOpenChange }: CreateTournamentD
           </DialogDescription>
         </DialogHeader>
 
-        <div className="grid gap-4 py-4">
-          <div className="grid gap-2">
-            <Label htmlFor="name">Nombre</Label>
-            <Input id="name" placeholder="Torneo de verano 2026" />
+        <form action={handleSubmit}>
+          <div className="grid gap-4 py-4">
+            <div className="grid gap-2">
+              <Label htmlFor="name">Nombre</Label>
+              <Input id="name" name="name" placeholder="Torneo de verano 2026" required />
+              {error && <p className="text-sm text-destructive">{error}</p>}
+            </div>
           </div>
 
-        </div>
-
-        <DialogFooter>
-          <Button type="submit">Guardar</Button>
-        </DialogFooter>
+          <DialogFooter>
+            <Button type="submit" disabled={isPending}>
+              {isPending ? "Guardando..." : "Guardar"}
+            </Button>
+          </DialogFooter>
+        </form>
       </DialogContent>
     </Dialog>
   )
