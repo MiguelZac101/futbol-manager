@@ -28,7 +28,8 @@ export function TournamentList({
       {/* Card para crear nuevo campeonato */}
       <button
         onClick={onCreate}
-        className="flex flex-col items-center justify-center gap-3 rounded-2xl border border-dashed border-muted-foreground/30 bg-muted/20 p-6 h-full min-h-[180px] hover:bg-muted/40 hover:border-muted-foreground/50 transition-colors"
+        title="Crear nuevo campeonato"
+        className="flex flex-col items-center justify-center gap-3 rounded-2xl border border-dashed border-muted-foreground/30 bg-muted/20 p-6 h-full min-h-[180px] hover:bg-muted/40 hover:border-muted-foreground/50 transition-colors cursor-pointer"
       >
         <div className="flex h-16 w-16 items-center justify-center rounded-full bg-muted">
           <Plus className="h-8 w-8 text-muted-foreground" />
