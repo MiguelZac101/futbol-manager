@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useTransition } from "react"
+import { useState } from "react"
 import {
   Dialog,
   DialogContent,
@@ -20,21 +20,21 @@ interface CreateTournamentDialogProps {
 }
 
 export function CreateTournamentDialog({ open, onOpenChange }: CreateTournamentDialogProps) {
-  const [isPending, startTransition] = useTransition()
+  const [isPending, setIsPending] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
-  function handleSubmit(formData: FormData) {
-    startTransition(async () => {
-      const result = await createTournament(formData)
+  async function handleSubmit(formData: FormData) {
+    setIsPending(true)
+    const result = await createTournament(formData)
+    setIsPending(false)
 
-      if (result?.error) {
-        setError(result.error)
-        return
-      }
+    if (result?.error) {
+      setError(result.error)
+      return
+    }
 
-      setError(null)
-      onOpenChange(false)
-    })
+    setError(null)
+    onOpenChange(false)
   }
 
   return (

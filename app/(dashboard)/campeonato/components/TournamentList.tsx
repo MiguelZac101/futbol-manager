@@ -7,7 +7,7 @@ import Image from "next/image"
 interface Tournament {
   id: string
   name: string
-  imageUrl?: string
+  imageUrl?: string | null
 }
 
 interface TournamentListProps {

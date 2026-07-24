@@ -1,31 +1,11 @@
-'use client'
-
-import { useState } from "react";
-import { TournamentList } from "./components/TournamentList";
-import { CreateTournamentDialog } from "./components/CreateTournamentDialog";
-
 // app/(dashboard)/campeonato/page.tsx
-export default function CampeonatoPage() {
+import prisma from "@/lib/prisma"
+import { CampeonatoClient } from "./components/CampeonatoClient"
 
-  const [open, setOpen] = useState(false);
+export default async function CampeonatoPage() {
+  const tournaments = await prisma.tournament.findMany({
+    orderBy: { createdAt: "desc" },
+  })
 
-  return (
-    <>      
-      <h1 className="text-2xl mb-6">Campeonatos</h1>      
-
-      <TournamentList
-        tournaments={[
-          { id: "1", name: "Torneo de verano 2026" },
-          { id: "2", name: "Copa Chess Club" },
-        ]}
-
-        onCreate={() => setOpen(true)}
-
-      />
-
-      <CreateTournamentDialog open={open} onOpenChange={setOpen} />
-
-    </>
-  )
-
+  return <CampeonatoClient tournaments={tournaments} />
 }
