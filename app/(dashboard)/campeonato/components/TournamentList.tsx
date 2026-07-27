@@ -1,8 +1,9 @@
 "use client"
 
-import { Trophy, Plus, Pencil, Trash2 } from "lucide-react"
+import { Trophy, Plus, Pencil, Trash2, Loader2 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import Image from "next/image"
+import { cn } from "@/lib/utils"
 
 interface Tournament {
   id: string
@@ -15,6 +16,7 @@ interface TournamentListProps {
   onCreate?: () => void
   onEdit?: (id: string) => void
   onDelete?: (id: string) => void
+  deletingId?: string | null
 }
 
 export function TournamentList({
@@ -22,6 +24,7 @@ export function TournamentList({
   onCreate,
   onEdit,
   onDelete,
+  deletingId,
 }: TournamentListProps) {
   return (
     <div className="grid grid-cols-[repeat(auto-fill,minmax(200px,1fr))] gap-4">
@@ -29,7 +32,7 @@ export function TournamentList({
       <button
         onClick={onCreate}
         title="Crear nuevo campeonato"
-        className="flex flex-col items-center justify-center gap-3 rounded-2xl border border-dashed border-muted-foreground/30 bg-muted/20 p-6 h-full min-h-[180px] hover:bg-muted/40 hover:border-muted-foreground/50 transition-colors cursor-pointer"
+        className="flex flex-col items-center justify-center gap-3 rounded-2xl border border-dashed border-muted-foreground/30 bg-muted/20 p-6 h-full min-h-45 hover:bg-muted/40 hover:border-muted-foreground/50 transition-colors cursor-pointer"
       >
         <div className="flex h-16 w-16 items-center justify-center rounded-full bg-muted">
           <Plus className="h-8 w-8 text-muted-foreground" />
@@ -40,10 +43,16 @@ export function TournamentList({
       </button>
 
       {/* Cards de campeonatos existentes */}
-      {tournaments.map((tournament) => (
+      {
+        tournaments.map((tournament) => {
+        const isDeleting = deletingId === tournament.id
+        return (
         <div
           key={tournament.id}
-          className="flex flex-col items-center gap-3 rounded-2xl border bg-card p-6 h-full min-h-[180px]"
+          className={cn(
+              "flex flex-col items-center gap-3 rounded-2xl border bg-card p-6 h-full min-h-45 transition-opacity",
+              isDeleting && "opacity-50 pointer-events-none"
+            )}
         >
           <div className="flex h-16 w-16 items-center justify-center rounded-full bg-muted overflow-hidden relative ">
             {tournament.imageUrl ? (
@@ -73,17 +82,23 @@ export function TournamentList({
               <Pencil className="h-3.5 w-3.5" />
             </Button>
             <Button
-              variant="outline"
-              size="icon"
-              className="h-8 w-8 text-destructive hover:text-destructive"
-              onClick={() => onDelete?.(tournament.id)}
-              aria-label={`Eliminar ${tournament.name}`}
-            >
-              <Trash2 className="h-3.5 w-3.5" />
-            </Button>
+                variant="outline"
+                size="icon"
+                className="h-8 w-8 text-destructive hover:text-destructive"
+                onClick={() => onDelete?.(tournament.id)}
+                disabled={isDeleting}
+              >
+                {isDeleting ? (
+                  <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                ) : (
+                  <Trash2 className="h-3.5 w-3.5" />
+                )}
+              </Button>
           </div>
         </div>
-      ))}
+        )
+        })
+      }
     </div>
   )
 }
