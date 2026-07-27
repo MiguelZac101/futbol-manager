@@ -23,3 +23,16 @@ export async function createTournament(formData: FormData) {
   revalidatePath("/campeonato")
   return { success: true }
 }
+
+export async function deleteTournament(id: string) {
+  if (!id) {
+    return { error: "ID de campeonato inválido" }
+  }
+
+  await prisma.tournament.delete({
+    where: { id },
+  })
+
+  revalidatePath("/campeonato")
+  return { success: true }
+}

@@ -4,6 +4,7 @@
 import { useState } from "react"
 import { TournamentList } from "./TournamentList"
 import { CreateTournamentDialog } from "./CreateTournamentDialog"
+import { deleteTournament } from "../actions"
 
 interface Tournament {
   id: string
@@ -18,7 +19,11 @@ export function CampeonatoClient({ tournaments }: { tournaments: Tournament[] })
     <>
       <h1 className="text-2xl mb-6">Campeonatos</h1>
 
-      <TournamentList tournaments={tournaments} onCreate={() => setOpen(true)} />
+      <TournamentList 
+        tournaments={tournaments} 
+        onCreate={() => setOpen(true)} 
+        onDelete={deleteTournament}
+        />
 
       <CreateTournamentDialog open={open} onOpenChange={setOpen} />
     </>

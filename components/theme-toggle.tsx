@@ -21,7 +21,7 @@ export function ThemeToggle() {
   const mounted = useMounted()
 
   if (!mounted) {
-    return <Button variant="outline" size="icon" disabled className="opacity-0" />
+    return <Button variant="outline" size="icon" disabled={true} className="opacity-0" />
   }
 
   return (
