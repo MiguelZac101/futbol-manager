@@ -1,6 +1,7 @@
 "use client"
 
-import { useState } from "react"
+import { useForm } from "react-hook-form"
+import { zodResolver } from "@hookform/resolvers/zod"
 import {
   Dialog,
   DialogContent,
@@ -9,10 +10,19 @@ import {
   DialogTitle,
   DialogFooter,
 } from "@/components/ui/dialog"
+import {
+  Form,
+  FormControl,
+  FormField,
+  FormItem,
+  FormLabel,
+  FormMessage,
+} from "@/components/ui/form"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
-import { Label } from "@/components/ui/label"
+import { tournamentSchema, TournamentFormValues } from "./schema"
 import { createTournament } from "../actions"
+import { useEffect } from "react"
 
 interface CreateTournamentDialogProps {
   open: boolean
@@ -20,20 +30,28 @@ interface CreateTournamentDialogProps {
 }
 
 export function CreateTournamentDialog({ open, onOpenChange }: CreateTournamentDialogProps) {
-  const [isPending, setIsPending] = useState(false)
-  const [error, setError] = useState<string | null>(null)
+  const form = useForm<TournamentFormValues>({
+    resolver: zodResolver(tournamentSchema),
+    defaultValues: { name: "" },
+  })
 
-  async function handleSubmit(formData: FormData) {
-    setIsPending(true)
+  useEffect(() => {
+    if (open) {
+      form.reset()
+    }
+  }, [open, form])
+
+  async function onSubmit(values: TournamentFormValues) {
+    const formData = new FormData()
+    formData.append("name", values.name)
+
     const result = await createTournament(formData)
-    setIsPending(false)
 
     if (result?.error) {
-      setError(result.error)
+      form.setError("name", { message: result.error })
       return
     }
-
-    setError(null)
+    
     onOpenChange(false)
   }
 
@@ -47,21 +65,29 @@ export function CreateTournamentDialog({ open, onOpenChange }: CreateTournamentD
           </DialogDescription>
         </DialogHeader>
 
-        <form action={handleSubmit}>
-          <div className="grid gap-4 py-4">
-            <div className="grid gap-2">
-              <Label htmlFor="name">Nombre</Label>
-              <Input id="name" name="name" placeholder="Torneo de verano 2026" required />
-              {error && <p className="text-sm text-destructive">{error}</p>}
-            </div>
-          </div>
+        <Form {...form}>
+          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+            <FormField
+              control={form.control}
+              name="name"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Nombre</FormLabel>
+                  <FormControl>
+                    <Input placeholder="Torneo de verano 2026" {...field} />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
 
-          <DialogFooter>
-            <Button type="submit" disabled={isPending}>
-              {isPending ? "Guardando..." : "Guardar"}
-            </Button>
-          </DialogFooter>
-        </form>
+            <DialogFooter>
+              <Button type="submit" disabled={form.formState.isSubmitting}>
+                {form.formState.isSubmitting ? "Guardando..." : "Guardar"}
+              </Button>
+            </DialogFooter>
+          </form>
+        </Form>
       </DialogContent>
     </Dialog>
   )

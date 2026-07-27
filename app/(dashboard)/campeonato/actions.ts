@@ -3,16 +3,21 @@
 
 import prisma from "@/lib/prisma"
 import { revalidatePath } from "next/cache"
+import { tournamentSchema } from "./components/schema"
 
 export async function createTournament(formData: FormData) {
-  const name = formData.get("name") as string
+  const rawData = {
+    name: formData.get("name"),
+  }
 
-  if (!name || name.trim().length === 0) {
-    return { error: "El nombre es requerido" }
+  const parsed = tournamentSchema.safeParse(rawData)
+
+  if (!parsed.success) {
+    return { error: parsed.error.issues[0].message }
   }
 
   await prisma.tournament.create({
-    data: { name: name.trim() },
+    data: { name: parsed.data.name },
   })
 
   revalidatePath("/campeonato")
