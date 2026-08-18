@@ -12,6 +12,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog"
 import { Input } from "@/components/ui/input"
+import { UploadButton } from "../../../../../lib/uploadthing"
 import { createTeam } from "../actions"
 
 interface Team {
@@ -29,6 +30,7 @@ export function TeamList({ tournamentId, initialTeams }: TeamListProps) {
   const [teams, setTeams] = useState(initialTeams)
   const [open, setOpen] = useState(false)
   const [name, setName] = useState("")
+  const [imageUrl, setImageUrl] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [isSubmitting, setIsSubmitting] = useState(false)
 
@@ -46,6 +48,10 @@ export function TeamList({ tournamentId, initialTeams }: TeamListProps) {
     const formData = new FormData()
     formData.append("name", name.trim())
 
+    if (imageUrl) {
+      formData.append("imageUrl", imageUrl)
+    }
+
     const result = await createTeam(tournamentId, formData)
 
     if (result?.error) {
@@ -59,6 +65,7 @@ export function TeamList({ tournamentId, initialTeams }: TeamListProps) {
     }
 
     setName("")
+    setImageUrl(null)
     setOpen(false)
     setIsSubmitting(false)
   }
@@ -124,8 +131,33 @@ export function TeamList({ tournamentId, initialTeams }: TeamListProps) {
                 onChange={(event) => setName(event.target.value)}
                 placeholder="River Plate"
               />
-              {error ? <p className="text-sm text-destructive">{error}</p> : null}
             </div>
+
+            <div className="space-y-2">
+              <label className="text-sm font-medium">Logo del equipo</label>
+
+              <UploadButton
+                endpoint="teamImage"
+                onClientUploadComplete={(res) => {
+                  const uploadedUrl = res?.[0]?.url
+                  if (uploadedUrl) {
+                    setImageUrl(uploadedUrl)
+                  }
+                }}
+                onUploadError={(error: Error) => {
+                  setError(error.message)
+                }}
+                className="ut-button:bg-primary ut-button:text-primary-foreground ut-button:hover:bg-primary/90"
+              />
+
+              {imageUrl ? (
+                <div className="overflow-hidden rounded-lg border bg-muted/20 p-2">
+                  <img src={imageUrl} alt="Logo del equipo" className="h-20 w-20 rounded-md object-cover" />
+                </div>
+              ) : null}
+            </div>
+
+            {error ? <p className="text-sm text-destructive">{error}</p> : null}
 
             <DialogFooter>
               <Button type="button" variant="outline" onClick={() => setOpen(false)}>
