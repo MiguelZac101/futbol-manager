@@ -123,6 +123,14 @@ changelog oficial antes de asumir que siguen aplicando igual.
 - En este proyecto, `proxy.ts` debe excluir `"/api/uploadthing(.*)"` del matcher protegido, porque el middleware de Clerk protege todo `/api` por default.
 - No usar `.env.local` en paralelo con `.env`. La configuración del proyecto ya tuvo bugs por duplicar archivo de entorno.
 
+## Imágenes en Next.js — usar `Image`, no `img`
+
+- Para cualquier imagen remota o local que se renderice en la UI, usar el componente `Image` de Next.js y no la etiqueta `img` nativa.
+- Esto aplica a logos, fotos de equipos, avatares y cualquier recurso externo que venga de UploadThing, CDN o una URL remota.
+- Si la URL viene de un dominio externo, hay que registrarlo en `next.config.ts` usando `images.remotePatterns`.
+- Ejemplo: `https://utfs.io` debe estar habilitado para que `next/image` acepte el src.
+- El uso de `img` está descartado para este proyecto, porque rompe el patrón de optimización, genera warnings de Next y puede fallar con dominios no configurados.
+
 ## Patrones de arquitectura ya establecidos
 
 ### Rutas
