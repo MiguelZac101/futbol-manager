@@ -30,6 +30,7 @@ interface CreateTournamentDialogProps {
 }
 
 export function CreateTournamentDialog({ open, onOpenChange }: CreateTournamentDialogProps) {
+  
   const form = useForm<TournamentFormValues>({
     resolver: zodResolver(tournamentSchema),
     defaultValues: { name: "" },

@@ -22,12 +22,14 @@ import {
 } from "@/components/ui/sidebar"
 import { useClerk, useUser } from "@clerk/nextjs"
 import { EllipsisVerticalIcon, CircleUserRoundIcon, CreditCardIcon, BellIcon, LogOutIcon } from "lucide-react"
+import { useRouter } from "next/navigation"
 
 export function NavUser() {
   const { isMobile } = useSidebar()
 
   const { user, isLoaded } = useUser()
-  const { signOut, openUserProfile } = useClerk()
+  const { signOut, openUserProfile, redirectToAfterSignOut } = useClerk()
+  const router = useRouter()
 
   if (!isLoaded || !user) return null
 
@@ -98,7 +100,20 @@ export function NavUser() {
               </DropdownMenuItem>
             </DropdownMenuGroup>
             <DropdownMenuSeparator />
-            <DropdownMenuItem onClick={() => signOut()}>
+            <DropdownMenuItem onClick={async () => {
+                await signOut();
+                try {
+                  if (typeof redirectToAfterSignOut === "function") {
+                    redirectToAfterSignOut()
+                    return
+                  }
+                } catch (e) {
+                  // ignore
+                }
+                // Force a full navigation to avoid Clerk client middleware
+                // redirecting back to sign-in with redirect_url.
+                window.location.replace("/")
+              }}>
               <LogOutIcon
               />
               Cerrar sesión
