@@ -10,6 +10,7 @@ import {
   BreadcrumbSeparator,
 } from "@/components/ui/breadcrumb"
 import { PlayerList } from "./components/PlayerList"
+import { TeamActions } from "./components/TeamActions"
 
 export async function generateMetadata({ params }: { params: Promise<{ id: string; teamId: string }> }) {
   const { teamId } = await params
@@ -95,9 +96,20 @@ export default async function TeamDetailPage({ params }: { params: Promise<{ id:
             )}
           </div>
 
-          <div className="space-y-2">
-            <p className="text-sm text-muted-foreground">Equipo</p>
-            <h1 className="text-3xl font-bold tracking-tight">{team.name}</h1>
+          <div className="flex w-full flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+            <div className="space-y-2">
+              <p className="text-sm text-muted-foreground">Equipo</p>
+              <h1 className="text-3xl font-bold tracking-tight">{team.name}</h1>
+            </div>
+
+            <TeamActions
+              team={{
+                id: team.id,
+                name: team.name,
+                imageUrl: team.imageUrl,
+              }}
+              tournamentId={id}
+            />
           </div>
         </div>
       </div>

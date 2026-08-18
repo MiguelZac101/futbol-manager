@@ -129,4 +129,17 @@
   html {
     @apply font-sans;
   }
+
+  button,
+  [role="button"],
+  a[href],
+  summary {
+    cursor: pointer;
+  }
+
+  button:disabled,
+  [aria-disabled="true"],
+  [disabled] {
+    cursor: not-allowed;
+  }
 }

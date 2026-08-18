@@ -1,5 +1,6 @@
 "use server"
 
+import { revalidatePath } from "next/cache"
 import { z } from "zod"
 import prisma from "@/lib/prisma"
 
@@ -46,5 +47,47 @@ export async function createTeam(tournamentId: string, formData: FormData) {
   })
 
   return { success: true, team }
+}
+
+export async function updateTeam(teamId: string, formData: FormData) {
+  const rawData = {
+    name: formData.get("name"),
+    imageUrl: formData.get("imageUrl"),
+  }
+
+  const parsed = teamSchema.safeParse(rawData)
+
+  if (!parsed.success) {
+    return { error: parsed.error.issues[0].message }
+  }
+
+  const team = await prisma.team.update({
+    where: { id: teamId },
+    data: {
+      name: parsed.data.name,
+      imageUrl: parsed.data.imageUrl ?? null,
+    },
+    select: {
+      id: true,
+      name: true,
+      imageUrl: true,
+    },
+  })
+
+  revalidatePath("/campeonato")
+  return { success: true, team }
+}
+
+export async function deleteTeam(teamId: string) {
+  if (!teamId) {
+    return { error: "ID del equipo inválido" }
+  }
+
+  await prisma.team.delete({
+    where: { id: teamId },
+  })
+
+  revalidatePath("/campeonato")
+  return { success: true }
 }
 

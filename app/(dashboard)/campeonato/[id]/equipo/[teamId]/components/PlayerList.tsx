@@ -177,7 +177,7 @@ export function PlayerList({ teamId, initialPlayers }: PlayerListProps) {
                       className="object-cover"
                     />
                   ) : (
-                    <div className="flex h-full w-full items-center justify-center text-4xl font-bold uppercase text-muted-foreground bg-gradient-to-br from-muted to-muted/50">
+                    <div className="flex h-full w-full items-center justify-center text-4xl font-bold uppercase text-muted-foreground bg-linear-to-br from-muted to-muted/50">
                       {player.name.slice(0, 1)}
                     </div>
                   )}
