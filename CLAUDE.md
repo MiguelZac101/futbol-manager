@@ -142,6 +142,8 @@ changelog oficial antes de asumir que siguen aplicando igual.
 - Cada sección tiene su `actions.ts` (ej. `app/(dashboard)/campeonato/actions.ts`)
 - Server Actions se usan solo para **mutaciones** (create/update/delete)
 - **Siempre validar con Zod también en la Server Action**, reusando el mismo schema del formulario (la validación del cliente es solo UX, no seguridad)
+- **Todos los deletes deben requerir confirmación explícita antes de ejecutarse**: no se elimina directamente desde un botón ni desde una acción sin un diálogo/modal de confirmación.
+- **Todos los botones y enlaces deben mostrar cursor tipo mano (pointer)**: al diseñar o tocar interacciones, usar cursor de puntero para hover, y `not-allowed` para elementos deshabilitados.
 
 ### Lectura de listas: estado local en el cliente, NO `revalidatePath`
 Importante — esto se decidió después de debuggear un bug real:
