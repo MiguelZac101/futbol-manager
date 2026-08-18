@@ -1,5 +1,6 @@
 "use client"
 
+import Link from "next/link"
 import Image from "next/image"
 import { useState } from "react"
 import { Plus, Users } from "lucide-react"
@@ -101,9 +102,11 @@ export function TeamList({ tournamentId, initialTeams }: TeamListProps) {
           </button>
 
           {teams.map((team) => (
-            <div
+            <Link
               key={team.id}
-              className="flex h-full min-h-40 flex-col items-center justify-center gap-3 rounded-2xl border border-border/70 bg-card p-6"
+              href={`/campeonato/${tournamentId}/equipo/${team.id}`}
+              title={`Ir a ${team.name}`}
+              className="group flex h-full min-h-40 flex-col items-center justify-center gap-3 rounded-2xl border border-border/70 bg-card p-6 transition-all duration-200 ease-out hover:border-primary/50 hover:bg-accent/20 hover:shadow-sm"
             >
               {team.imageUrl ? (
                 <div className="relative h-16 w-16 overflow-hidden rounded-full bg-transparent">
@@ -121,7 +124,7 @@ export function TeamList({ tournamentId, initialTeams }: TeamListProps) {
                 </div>
               )}
               <span className="text-sm font-medium text-center line-clamp-2">{team.name}</span>
-            </div>
+            </Link>
           ))}
         </div>
 
