@@ -108,6 +108,21 @@ changelog oficial antes de asumir que siguen aplicando igual.
 - **Una sola `DATABASE_URL` (pooled, con `-pooler`) es suficiente.** No se necesita `DIRECT_URL` en este proyecto — se probó explícitamente y funciona sin ella.
 - Un solo archivo `.env` (no usar `.env.local` en paralelo — causó bugs de configuración duplicada).
 
+## UploadThing — configuración y gotchas
+
+- Se usa para subir imágenes de `Team` (logo/insignia) desde el modal de creación.
+- La variable de entorno requerida es `UPLOADTHING_TOKEN` en `.env`.
+- El endpoint está en `app/api/uploadthing/route.ts` y expone un router llamado `teamImage`.
+- El cliente usa un `UploadButton` generado desde `@uploadthing/react` y debe apuntar a `/api/uploadthing`.
+- La respuesta del upload devuelve la URL final y luego se persiste en `Team.imageUrl`.
+- El patrón correcto es: `onClientUploadComplete` -> guardar la URL localmente -> salvar con `createTeam`.
+- Si el upload queda cargando eternamente, revisar primero:
+  - que la variable `UPLOADTHING_TOKEN` existe en el entorno real;
+  - que el middleware de Clerk no está bloqueando `/api/uploadthing`;
+  - que no haya una segunda instancia de Next.js corriendo sobre el mismo puerto.
+- En este proyecto, `proxy.ts` debe excluir `"/api/uploadthing(.*)"` del matcher protegido, porque el middleware de Clerk protege todo `/api` por default.
+- No usar `.env.local` en paralelo con `.env`. La configuración del proyecto ya tuvo bugs por duplicar archivo de entorno.
+
 ## Patrones de arquitectura ya establecidos
 
 ### Rutas
