@@ -91,7 +91,12 @@ export default async function TeamDetailPage({ params }: { params: Promise<{ id:
               />
             ) : (
               <div className="flex h-full w-full items-center justify-center text-xl font-bold uppercase text-muted-foreground">
-                {team.name.slice(0, 1)}
+                {team.name
+                  .split(/\s+/)
+                  .filter(Boolean)
+                  .map((part) => part[0])
+                  .slice(0, 2)
+                  .join("")}
               </div>
             )}
           </div>
@@ -99,7 +104,9 @@ export default async function TeamDetailPage({ params }: { params: Promise<{ id:
           <div className="flex w-full flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
             <div className="space-y-2">
               <p className="text-sm text-muted-foreground">Equipo</p>
-              <h1 className="text-3xl font-bold tracking-tight">{team.name}</h1>
+              <h1 className="text-3xl font-bold tracking-tight">
+                {team.name.replace(/\b\w/g, (char) => char.toUpperCase())}
+              </h1>
             </div>
 
             <TeamActions

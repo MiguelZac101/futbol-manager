@@ -197,7 +197,12 @@ export function PlayerList({ teamId, initialPlayers }: PlayerListProps) {
                     />
                   ) : (
                     <div className="flex h-full w-full items-center justify-center text-4xl font-bold uppercase text-muted-foreground bg-linear-to-br from-muted to-muted/50">
-                      {player.name.slice(0, 1)}
+                      {player.name
+                        .split(/\s+/)
+                        .filter(Boolean)
+                        .map((part) => part[0])
+                        .slice(0, 2)
+                        .join("")}
                     </div>
                   )}
               </div>

@@ -120,10 +120,17 @@ export function TeamList({ tournamentId, initialTeams }: TeamListProps) {
                 </div>
               ) : (
                 <div className="flex h-16 w-16 items-center justify-center rounded-full border border-dashed border-muted-foreground/40 bg-muted/40 text-lg font-bold uppercase text-muted-foreground">
-                  {team.name.slice(0, 1)}
+                  {team.name
+                    .split(/\s+/)
+                    .filter(Boolean)
+                    .map((part) => part[0])
+                    .slice(0, 2)
+                    .join("")}
                 </div>
               )}
-              <span className="text-sm font-medium text-center line-clamp-2">{team.name}</span>
+              <span className="text-sm font-medium text-center line-clamp-2">
+                {team.name.replace(/\b\w/g, (char) => char.toUpperCase())}
+              </span>
             </Link>
           ))}
         </div>
