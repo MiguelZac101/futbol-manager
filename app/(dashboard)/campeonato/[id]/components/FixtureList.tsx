@@ -1,9 +1,9 @@
 "use client"
 
 import { useState } from "react"
-import { CalendarDays } from "lucide-react"
+import { CalendarDays, Trash2 } from "lucide-react"
 import { Button } from "@/components/ui/button"
-import { generateFecha, updateMatchResult, type FixtureDate } from "../actions"
+import { deleteFecha, generateFecha, updateMatchResult, type FixtureDate } from "../actions"
 
 interface FixtureListProps {
   tournamentId: string
@@ -75,6 +75,23 @@ export function FixtureList({ tournamentId, initialFechas }: FixtureListProps) {
         }))
       )
     }
+  }
+
+  async function handleDeleteFecha(fechaId: string) {
+    const confirmed = window.confirm("¿Seguro que querés eliminar esta fecha? Se borrarán todos sus partidos.")
+
+    if (!confirmed) {
+      return
+    }
+
+    const response = await deleteFecha(fechaId)
+
+    if (response?.error) {
+      setError(response.error)
+      return
+    }
+
+    setFechas((current) => current.filter((fecha) => fecha.id !== fechaId))
   }
 
   return (
@@ -173,6 +190,19 @@ export function FixtureList({ tournamentId, initialFechas }: FixtureListProps) {
                         </div>
                       </div>
                     ))}
+                </div>
+
+                <div className="mt-4 border-t pt-3">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    className="w-full gap-2 text-destructive hover:bg-destructive/10 hover:text-destructive"
+                    onClick={() => handleDeleteFecha(fecha.id)}
+                  >
+                    <Trash2 className="h-3.5 w-3.5" />
+                    Eliminar fecha
+                  </Button>
                 </div>
               </div>
             ))}

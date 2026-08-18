@@ -249,6 +249,19 @@ export async function updateMatchResult(
   }
 }
 
+export async function deleteFecha(fechaId: string) {
+  if (!fechaId) {
+    return { error: "La fecha es inválida." }
+  }
+
+  await prisma.fecha.delete({
+    where: { id: fechaId },
+  })
+
+  revalidatePath(`/campeonato`)
+  return { success: true }
+}
+
 export async function createTeam(tournamentId: string, formData: FormData) {
   const rawData = {
     name: formData.get("name"),
