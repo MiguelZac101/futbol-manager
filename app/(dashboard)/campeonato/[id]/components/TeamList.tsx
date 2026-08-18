@@ -35,6 +35,12 @@ export function TeamList({ tournamentId, initialTeams }: TeamListProps) {
   const [error, setError] = useState<string | null>(null)
   const [isSubmitting, setIsSubmitting] = useState(false)
 
+  function resetForm() {
+    setName("")
+    setImageUrl(null)
+    setError(null)
+  }
+
   async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault()
     setError(null)
@@ -65,8 +71,7 @@ export function TeamList({ tournamentId, initialTeams }: TeamListProps) {
       setTeams((current) => [result.team, ...current])
     }
 
-    setName("")
-    setImageUrl(null)
+    resetForm()
     setOpen(false)
     setIsSubmitting(false)
   }
@@ -82,7 +87,10 @@ export function TeamList({ tournamentId, initialTeams }: TeamListProps) {
         <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
           <button
             type="button"
-            onClick={() => setOpen(true)}
+            onClick={() => {
+              resetForm()
+              setOpen(true)
+            }}
             title="Crear nuevo equipo"
             className="flex h-full min-h-40 flex-col items-center justify-center gap-3 rounded-2xl border border-dashed border-muted-foreground/30 bg-muted/20 p-6 transition-colors hover:bg-muted/40 hover:border-muted-foreground/50 cursor-pointer"
           >
@@ -124,7 +132,15 @@ export function TeamList({ tournamentId, initialTeams }: TeamListProps) {
         ) : null}
       </div>
 
-      <Dialog open={open} onOpenChange={setOpen}>
+      <Dialog
+        open={open}
+        onOpenChange={(nextOpen) => {
+          setOpen(nextOpen)
+          if (!nextOpen) {
+            resetForm()
+          }
+        }}
+      >
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
             <DialogTitle>Agregar equipo</DialogTitle>
@@ -164,8 +180,14 @@ export function TeamList({ tournamentId, initialTeams }: TeamListProps) {
               />
 
               {imageUrl ? (
-                <div className="overflow-hidden rounded-lg border bg-muted/20 p-2">
-                  <img src={imageUrl} alt="Logo del equipo" className="h-20 w-20 rounded-md object-cover" />
+                <div className="relative h-20 w-20 overflow-hidden rounded-md bg-muted/20">
+                  <Image
+                    src={imageUrl}
+                    alt="Logo del equipo"
+                    fill
+                    sizes="80px"
+                    className="object-cover"
+                  />
                 </div>
               ) : null}
             </div>

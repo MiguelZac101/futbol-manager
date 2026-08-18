@@ -47,3 +47,4 @@ export async function createTeam(tournamentId: string, formData: FormData) {
 
   return { success: true, team }
 }
+
