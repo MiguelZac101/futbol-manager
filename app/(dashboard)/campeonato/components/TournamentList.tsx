@@ -38,7 +38,7 @@ export function TournamentList({
           <Plus className="h-8 w-8 text-muted-foreground" />
         </div>
         <span className="text-sm font-medium text-muted-foreground">
-          Nuevo Campeonato
+          Campeonato
         </span>
       </button>
 

@@ -1,9 +1,44 @@
 // app/(dashboard)/campeonato/actions.ts
 "use server"
 
+import { auth, currentUser } from "@clerk/nextjs/server"
 import prisma from "@/lib/prisma"
 import { revalidatePath } from "next/cache"
 import { tournamentSchema } from "./components/schema"
+
+async function ensureLocalUser() {
+  const { userId } = await auth()
+
+  if (!userId) {
+    throw new Error("No hay usuario autenticado")
+  }
+
+  const clerkUser = await currentUser()
+
+  if (!clerkUser) {
+    throw new Error("No se pudo obtener el usuario de Clerk")
+  }
+
+  const primaryEmail = clerkUser.emailAddresses[0]?.emailAddress ?? ""
+  const fullName = [clerkUser.firstName, clerkUser.lastName].filter(Boolean).join(" ") || "Usuario"
+
+  let localUser = await prisma.user.findUnique({
+    where: { clerkId: userId },
+  })
+
+  if (!localUser) {
+    localUser = await prisma.user.create({
+      data: {
+        clerkId: userId,
+        name: fullName,
+        email: primaryEmail || `${userId}@local.clerk`,
+        imageUrl: clerkUser.imageUrl || null,
+      },
+    })
+  }
+
+  return localUser
+}
 
 export async function createTournament(formData: FormData) {
   const rawData = {
@@ -16,8 +51,13 @@ export async function createTournament(formData: FormData) {
     return { error: parsed.error.issues[0].message }
   }
 
+  const organizer = await ensureLocalUser()
+
   await prisma.tournament.create({
-    data: { name: parsed.data.name },
+    data: {
+      name: parsed.data.name,
+      organizerId: organizer.id,
+    },
   })
 
   revalidatePath("/campeonato")
