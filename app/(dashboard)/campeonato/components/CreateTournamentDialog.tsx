@@ -24,12 +24,19 @@ import { tournamentSchema, TournamentFormValues } from "./schema"
 import { createTournament } from "../actions"
 import { useEffect } from "react"
 
+interface TournamentCreated {
+  id: string
+  name: string
+  imageUrl?: string | null
+}
+
 interface CreateTournamentDialogProps {
   open: boolean
   onOpenChange: (open: boolean) => void
+  onCreated: (tournament: TournamentCreated) => void
 }
 
-export function CreateTournamentDialog({ open, onOpenChange }: CreateTournamentDialogProps) {
+export function CreateTournamentDialog({ open, onOpenChange, onCreated }: CreateTournamentDialogProps) {
   
   const form = useForm<TournamentFormValues>({
     resolver: zodResolver(tournamentSchema),
@@ -52,7 +59,11 @@ export function CreateTournamentDialog({ open, onOpenChange }: CreateTournamentD
       form.setError("name", { message: result.error })
       return
     }
-    
+
+    if (result?.tournament) {
+      onCreated(result.tournament)
+    }
+
     onOpenChange(false)
   }
 

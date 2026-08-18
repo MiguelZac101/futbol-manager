@@ -13,9 +13,10 @@ interface Tournament {
   imageUrl?: string | null
 }
 
-export function CampeonatoClient({ tournaments }: { tournaments: Tournament[] }) {
+export function CampeonatoClient({ tournaments: initialTournaments }: { tournaments: Tournament[] }) {
   const [open, setOpen] = useState(false)
   const [deletingId, setDeletingId] = useState<string | null>(null)
+  const [tournaments, setTournaments] = useState(initialTournaments)
 
   async function handleDelete(id: string) {
     setDeletingId(id)
@@ -30,6 +31,10 @@ export function CampeonatoClient({ tournaments }: { tournaments: Tournament[] })
     )
   }
 
+  function handleTournamentCreated(nextTournament: Tournament) {
+    setTournaments((current) => [nextTournament, ...current])
+  }
+
   return (
     <>
       <h1 className="text-2xl mb-6">Campeonatos</h1>
@@ -41,7 +46,11 @@ export function CampeonatoClient({ tournaments }: { tournaments: Tournament[] })
         deletingId={deletingId}
         />
 
-      <CreateTournamentDialog open={open} onOpenChange={setOpen} />
+      <CreateTournamentDialog
+        open={open}
+        onOpenChange={setOpen}
+        onCreated={handleTournamentCreated}
+      />
     </>
   )
 }

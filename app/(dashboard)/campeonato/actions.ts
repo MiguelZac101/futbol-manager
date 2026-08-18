@@ -53,15 +53,19 @@ export async function createTournament(formData: FormData) {
 
   const organizer = await ensureLocalUser()
 
-  await prisma.tournament.create({
+  const tournament = await prisma.tournament.create({
     data: {
       name: parsed.data.name,
       organizerId: organizer.id,
     },
+    select: {
+      id: true,
+      name: true,
+      imageUrl: true,
+    },
   })
 
-  revalidatePath("/campeonato")
-  return { success: true }
+  return { success: true, tournament }
 }
 
 export async function deleteTournament(id: string) {
