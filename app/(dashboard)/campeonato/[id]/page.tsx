@@ -8,6 +8,8 @@ import {
   BreadcrumbPage,
   BreadcrumbSeparator,
 } from "@/components/ui/breadcrumb"
+import { TeamList } from "./components/TeamList"
+import { getTournamentTeams } from "./actions"
 
 export async function generateMetadata({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params
@@ -36,6 +38,8 @@ export default async function TournamentDetailPage({
     return <div className="p-6">Campeonato no encontrado.</div>
   }
 
+  const teams = await getTournamentTeams(id)
+
   return (
     <div className="space-y-6 p-6">
       <Breadcrumb>
@@ -57,8 +61,12 @@ export default async function TournamentDetailPage({
         <h1 className="text-3xl font-bold tracking-tight">{tournament.name}</h1>
       </div>
 
-      <div className="rounded-xl border bg-card p-6">
-        <p className="text-sm text-muted-foreground">Aquí va el contenido del campeonato.</p>
+      <div className="grid gap-6 xl:grid-cols-[1.2fr_0.8fr]">
+        <div className="rounded-xl border bg-card p-6">
+          <p className="text-sm text-muted-foreground">Resumen del torneo</p>
+        </div>
+
+        <TeamList tournamentId={id} initialTeams={teams} />
       </div>
     </div>
   )
