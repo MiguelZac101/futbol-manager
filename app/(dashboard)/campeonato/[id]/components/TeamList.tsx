@@ -1,5 +1,6 @@
 "use client"
 
+import Image from "next/image"
 import { useState } from "react"
 import { Plus, Users } from "lucide-react"
 import { Button } from "@/components/ui/button"
@@ -96,9 +97,21 @@ export function TeamList({ tournamentId, initialTeams }: TeamListProps) {
               key={team.id}
               className="flex h-full min-h-40 flex-col items-center justify-center gap-3 rounded-2xl border border-border/70 bg-card p-6"
             >
-              <div className="flex h-16 w-16 items-center justify-center rounded-full bg-muted text-xs font-semibold uppercase text-muted-foreground">
-                {team.name.slice(0, 2)}
-              </div>
+              {team.imageUrl ? (
+                <div className="relative h-16 w-16 overflow-hidden rounded-full bg-transparent">
+                  <Image
+                    src={team.imageUrl}
+                    alt={team.name}
+                    fill
+                    sizes="64px"
+                    className="object-cover"
+                  />
+                </div>
+              ) : (
+                <div className="flex h-16 w-16 items-center justify-center rounded-full border border-dashed border-muted-foreground/40 bg-muted/40 text-lg font-bold uppercase text-muted-foreground">
+                  {team.name.slice(0, 1)}
+                </div>
+              )}
               <span className="text-sm font-medium text-center line-clamp-2">{team.name}</span>
             </div>
           ))}
