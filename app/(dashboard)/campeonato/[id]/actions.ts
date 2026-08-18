@@ -28,6 +28,7 @@ export type FixtureMatch = {
 export type FixtureDate = {
   id: string
   number: number
+  status: "OPEN" | "CLOSED"
   matches: FixtureMatch[]
 }
 
@@ -50,6 +51,7 @@ export async function getTournamentFechas(tournamentId: string): Promise<Fixture
     select: {
       id: true,
       number: true,
+      status: true,
       matches: {
         orderBy: { slot: "asc" },
         select: {
@@ -78,6 +80,7 @@ export async function getTournamentFechas(tournamentId: string): Promise<Fixture
   return fechas.map((fecha) => ({
     id: fecha.id,
     number: fecha.number,
+    status: fecha.status,
     matches: fecha.matches.map((match) => ({
       id: match.id,
       slot: match.slot,
@@ -187,12 +190,44 @@ export async function generateFecha(tournamentId: string) {
     return {
       id: fecha.id,
       number: fecha.number,
+      status: "OPEN" as const,
       matches: createdMatches,
     }
   })
 
   revalidatePath(`/campeonato/${tournamentId}`)
   return { success: true, fecha: createdFecha }
+}
+
+async function syncFechaStatus(fechaId: string) {
+  const fecha = await prisma.fecha.findUnique({
+    where: { id: fechaId },
+    include: {
+      matches: {
+        select: { status: true },
+      },
+    },
+  })
+
+  if (!fecha) {
+    return
+  }
+
+  const allMatchesCompleted = fecha.matches.length > 0 && fecha.matches.every((match) => match.status === "COMPLETED")
+
+  if (allMatchesCompleted && fecha.status !== "CLOSED") {
+    await prisma.fecha.update({
+      where: { id: fechaId },
+      data: { status: "CLOSED" },
+    })
+  }
+
+  if (!allMatchesCompleted && fecha.status !== "OPEN") {
+    await prisma.fecha.update({
+      where: { id: fechaId },
+      data: { status: "OPEN" },
+    })
+  }
 }
 
 export async function updateMatchResult(
@@ -217,6 +252,7 @@ export async function updateMatchResult(
       id: true,
       slot: true,
       status: true,
+      fechaId: true,
       teamOneScore: true,
       teamTwoScore: true,
       teamOne: {
@@ -233,6 +269,8 @@ export async function updateMatchResult(
       },
     },
   })
+
+  await syncFechaStatus(match.fechaId)
 
   revalidatePath(`/campeonato`)
   return {

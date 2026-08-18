@@ -9,7 +9,7 @@ generator client {
 }
 
 datasource db {
-  provider = "postgresql"  
+  provider = "postgresql"
 }
 
 // --- Usuario local, espejo del usuario de Clerk ---
@@ -35,7 +35,7 @@ enum TournamentStatus {
 // más temprano) — eso es fijo. Este campo define solo el CRITERIO DE DESEMPATE
 // cuando dos o más equipos empatan en puntos.
 enum TiebreakerCriteria {
-  GOALS_FOR       // más goles a favor (criterio por defecto)
+  GOALS_FOR // más goles a favor (criterio por defecto)
   GOAL_DIFFERENCE // diferencia de goles (a favor - en contra)
 }
 
@@ -92,8 +92,8 @@ model Team {
   tournament   Tournament @relation(fields: [tournamentId], references: [id], onDelete: Cascade)
 
   players      Player[]
-  matchesAsOne Match[] @relation("TeamOne")
-  matchesAsTwo Match[] @relation("TeamTwo")
+  matchesAsOne Match[]  @relation("TeamOne")
+  matchesAsTwo Match[]  @relation("TeamTwo")
 }
 
 // --- Jugador de un equipo ---
@@ -114,12 +114,18 @@ enum FechaGenerationMethod {
   STANDINGS
 }
 
+enum FechaStatus {
+  OPEN
+  CLOSED
+}
+
 // --- Fecha/Jornada del fixture ---
 model Fecha {
-  id               String                 @id @default(cuid())
+  id               String                @id @default(cuid())
   number           Int
+  status           FechaStatus           @default(OPEN)
   generationMethod FechaGenerationMethod
-  createdAt        DateTime               @default(now())
+  createdAt        DateTime              @default(now())
 
   tournamentId String
   tournament   Tournament @relation(fields: [tournamentId], references: [id], onDelete: Cascade)
@@ -138,7 +144,7 @@ enum MatchStatus {
 model Match {
   id           String      @id @default(cuid())
   status       MatchStatus @default(SCHEDULED)
-  slot         Int         // orden dentro de la fecha: 1 = juega primero, 2 = segundo, etc.
+  slot         Int // orden dentro de la fecha: 1 = juega primero, 2 = segundo, etc.
   teamOneScore Int?
   teamTwoScore Int?
   wasSwapped   Boolean     @default(false)

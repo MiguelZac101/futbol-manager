@@ -125,7 +125,18 @@ export function FixtureList({ tournamentId, initialFechas }: FixtureListProps) {
                     <p className="text-[10px] uppercase tracking-[0.2em] text-muted-foreground">
                       Fecha
                     </p>
-                    <h3 className="text-xl font-bold">{fecha.number}</h3>
+                    <div className="flex items-center gap-2">
+                      <h3 className="text-xl font-bold">{fecha.number}</h3>
+                      <span
+                        className={`rounded-full px-2 py-0.5 text-[10px] font-medium uppercase tracking-wide ${
+                          fecha.status === "CLOSED"
+                            ? "bg-emerald-500/15 text-emerald-600 dark:text-emerald-400"
+                            : "bg-amber-500/15 text-amber-600 dark:text-amber-400"
+                        }`}
+                      >
+                        {fecha.status === "CLOSED" ? "Cerrada" : "Abierta"}
+                      </span>
+                    </div>
                   </div>
 
                   <div className="text-right text-sm text-muted-foreground">
