@@ -149,24 +149,43 @@ export function PlayerList({ teamId, initialPlayers }: PlayerListProps) {
           <span className="text-sm text-muted-foreground">{players.length}</span>
         </div>
 
-        <div className="grid gap-4 grid-cols-3 sm:grid-cols-4 lg:grid-cols-5">
-          <button
-            type="button"
-            onClick={openCreateDialog}
-            title="Crear nuevo jugador"
-            className="flex h-full min-h-40 flex-col items-center justify-center gap-3 rounded-2xl border border-dashed border-muted-foreground/30 bg-muted/20 p-4 transition-colors hover:bg-muted/40 hover:border-muted-foreground/50 cursor-pointer"
-          >
-            <div className="flex h-12 w-12 items-center justify-center rounded-full bg-muted">
-              <Plus className="h-6 w-6 text-muted-foreground" />
-            </div>
-            <span className="text-xs font-medium text-muted-foreground text-center">Jugador</span>
-          </button>
-
-          {players.map((player) => (
-            <div
-              key={player.id}
-              className="flex flex-col overflow-hidden rounded-2xl border border-border/70 bg-card transition-shadow hover:shadow-md"
+        {players.length === 0 ? (
+          <div className="flex gap-4">
+            <button
+              type="button"
+              onClick={openCreateDialog}
+              title="Crear nuevo jugador"
+              className="flex h-full min-h-40 w-40 shrink-0 flex-col items-center justify-center gap-3 rounded-2xl border border-dashed border-muted-foreground/30 bg-muted/20 p-4 transition-colors hover:bg-muted/40 hover:border-muted-foreground/50 cursor-pointer"
             >
+              <div className="flex h-12 w-12 items-center justify-center rounded-full bg-muted">
+                <Plus className="h-6 w-6 text-muted-foreground" />
+              </div>
+              <span className="text-xs font-medium text-muted-foreground text-center">Jugador</span>
+            </button>
+
+            <div className="flex min-h-40 flex-1 items-center justify-center rounded-2xl border border-dashed border-muted-foreground/30 bg-muted/10 p-6 text-center text-sm text-muted-foreground">
+              Todavía no hay jugadores en este equipo.
+            </div>
+          </div>
+        ) : (
+          <div className="grid gap-4 grid-cols-3 sm:grid-cols-4 lg:grid-cols-5">
+            <button
+              type="button"
+              onClick={openCreateDialog}
+              title="Crear nuevo jugador"
+              className="flex h-full min-h-40 flex-col items-center justify-center gap-3 rounded-2xl border border-dashed border-muted-foreground/30 bg-muted/20 p-4 transition-colors hover:bg-muted/40 hover:border-muted-foreground/50 cursor-pointer"
+            >
+              <div className="flex h-12 w-12 items-center justify-center rounded-full bg-muted">
+                <Plus className="h-6 w-6 text-muted-foreground" />
+              </div>
+              <span className="text-xs font-medium text-muted-foreground text-center">Jugador</span>
+            </button>
+
+            {players.map((player) => (
+              <div
+                key={player.id}
+                className="flex flex-col overflow-hidden rounded-2xl border border-border/70 bg-card transition-shadow hover:shadow-md"
+              >
               <div className="relative h-64 w-full overflow-hidden bg-muted/20">
                 {player.photoUrl ? (
                     <Image
@@ -190,47 +209,43 @@ export function PlayerList({ teamId, initialPlayers }: PlayerListProps) {
                 </div>
               </div>
 
-              <div className="flex w-full gap-1 border-t px-2 py-2">
-                <TooltipProvider>
-                  <Tooltip>
-                    <TooltipTrigger asChild>
-                      <Button
-                        type="button"
-                        variant="ghost"
-                        size="sm"
-                        className="h-8 flex-1 text-xs p-1 cursor-pointer"
-                        onClick={() => openEditDialog(player)}
-                      >
-                        <Pencil className="h-3 w-3" />
-                      </Button>
-                    </TooltipTrigger>
-                    <TooltipContent>Editar</TooltipContent>
-                  </Tooltip>
-                  <Tooltip>
-                    <TooltipTrigger asChild>
-                      <Button
-                        type="button"
-                        variant="ghost"
-                        size="sm"
-                        className="h-8 flex-1 text-xs text-destructive hover:text-destructive p-1 cursor-pointer"
-                        onClick={() => openDeleteConfirmDialog(player)}
-                      >
-                        <Trash2 className="h-3 w-3" />
-                      </Button>
-                    </TooltipTrigger>
-                    <TooltipContent>Eliminar</TooltipContent>
-                  </Tooltip>
-                </TooltipProvider>
+                <div className="flex w-full gap-1 border-t px-2 py-2">
+                  <TooltipProvider>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="sm"
+                          className="h-8 flex-1 text-xs p-1 cursor-pointer"
+                          onClick={() => openEditDialog(player)}
+                        >
+                          <Pencil className="h-3 w-3" />
+                        </Button>
+                      </TooltipTrigger>
+                      <TooltipContent>Editar</TooltipContent>
+                    </Tooltip>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="sm"
+                          className="h-8 flex-1 text-xs text-destructive hover:text-destructive p-1 cursor-pointer"
+                          onClick={() => openDeleteConfirmDialog(player)}
+                        >
+                          <Trash2 className="h-3 w-3" />
+                        </Button>
+                      </TooltipTrigger>
+                      <TooltipContent>Eliminar</TooltipContent>
+                    </Tooltip>
+                  </TooltipProvider>
+                </div>
               </div>
-            </div>
-          ))}
-        </div>
-
-        {players.length === 0 ? (
-          <div className="mt-4 rounded-lg border border-dashed p-6 text-center text-sm text-muted-foreground">
-            Todavía no hay jugadores en este equipo.
+            ))}
           </div>
-        ) : null}
+        )}
+
       </div>
 
       <Dialog

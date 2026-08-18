@@ -2,7 +2,7 @@
 "use server"
 
 import { auth, currentUser } from "@clerk/nextjs/server"
-import prisma from "@/lib/prisma"
+import { prisma } from "@/lib/prisma"
 import { revalidatePath } from "next/cache"
 import { tournamentSchema } from "./components/schema"
 

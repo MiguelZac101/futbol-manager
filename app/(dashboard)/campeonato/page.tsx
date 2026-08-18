@@ -1,5 +1,5 @@
 // app/(dashboard)/campeonato/page.tsx
-import prisma from "@/lib/prisma"
+import { prisma } from "@/lib/prisma"
 import { CampeonatoClient } from "./components/CampeonatoClient"
 
 export default async function CampeonatoPage() {

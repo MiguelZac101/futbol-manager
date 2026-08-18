@@ -1,7 +1,7 @@
 "use server"
 
 import { z } from "zod"
-import prisma from "@/lib/prisma"
+import { prisma } from "@/lib/prisma"
 
 const playerSchema = z.object({
   name: z.string().trim().min(2, "El nombre del jugador debe tener al menos 2 caracteres"),
