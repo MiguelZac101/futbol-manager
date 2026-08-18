@@ -20,16 +20,13 @@ export function ThemeToggle() {
   const { theme, setTheme } = useTheme()
   const mounted = useMounted()
 
-  if (!mounted) {
-    return <Button variant="outline" size="icon" disabled={true} className="opacity-0" />
-  }
-
   return (
     <Button
-      variant="ghost"
+      variant={mounted ? "ghost" : "outline"}
       size="lg"
       onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
-      className="px-2 cursor-pointer"
+      className={mounted ? "px-2 cursor-pointer" : "pointer-events-none opacity-0"}
+      aria-label="Toggle theme"
     >
       <Sun className="h-4 w-4 rotate-0 scale-100 transition-all dark:-rotate-90 dark:scale-0" />
       <Moon className="absolute h-4 w-4 rotate-90 scale-0 transition-all dark:rotate-0 dark:scale-100" />
