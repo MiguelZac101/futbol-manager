@@ -154,6 +154,8 @@ export async function generateFecha(tournamentId: string) {
           teamOneId: teamOne.id,
           teamTwoId: teamTwo.id,
           status: "SCHEDULED",
+          teamOneScore: 0,
+          teamTwoScore: 0,
         },
         select: {
           id: true,

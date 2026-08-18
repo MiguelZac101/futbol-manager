@@ -145,8 +145,8 @@ model Match {
   id           String      @id @default(cuid())
   status       MatchStatus @default(SCHEDULED)
   slot         Int // orden dentro de la fecha: 1 = juega primero, 2 = segundo, etc.
-  teamOneScore Int?
-  teamTwoScore Int?
+  teamOneScore Int         @default(0)
+  teamTwoScore Int         @default(0)
   wasSwapped   Boolean     @default(false)
 
   fechaId String
