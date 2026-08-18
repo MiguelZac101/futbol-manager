@@ -1,5 +1,6 @@
 "use client"
 
+import Link from "next/link"
 import { Trophy, Plus, Pencil, Trash2, Loader2 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import Image from "next/image"
@@ -50,33 +51,43 @@ export function TournamentList({
         <div
           key={tournament.id}
           className={cn(
-              "flex flex-col items-center gap-3 rounded-2xl border bg-card p-6 h-full min-h-45 transition-opacity",
+              "group flex flex-col items-center gap-3 rounded-2xl border border-border/70 bg-card p-6 h-full min-h-45 transition-all duration-200 ease-out hover:border-primary/50 hover:shadow-sm hover:bg-accent/20",
               isDeleting && "opacity-50 pointer-events-none"
             )}
         >
-          <div className="flex h-16 w-16 items-center justify-center rounded-full bg-muted overflow-hidden relative ">
-            {tournament.imageUrl ? (
-              <Image
-                src={tournament.imageUrl}
-                alt={tournament.name}
-                className="h-full w-full object-cover"
-                fill                
-              />
-            ) : (
-              <Trophy className="h-8 w-8 text-muted-foreground" />
-            )}
-          </div>
+          <Link
+            href={`/campeonato/${tournament.id}`}
+            title={`Ir a ${tournament.name}`}
+            className="flex w-full flex-col items-center gap-3 text-center"
+          >
+            <div className="flex h-16 w-16 items-center justify-center rounded-full bg-muted overflow-hidden relative ">
+              {tournament.imageUrl ? (
+                <Image
+                  src={tournament.imageUrl}
+                  alt={tournament.name}
+                  className="h-full w-full object-cover"
+                  fill                
+                />
+              ) : (
+                <Trophy className="h-8 w-8 text-muted-foreground" />
+              )}
+            </div>
 
-          <span className="text-sm font-medium text-center line-clamp-2">
-            {tournament.name}
-          </span>
+            <span className="text-sm font-medium text-center line-clamp-2">
+              {tournament.name}
+            </span>
+          </Link>
 
           <div className="flex gap-2 mt-auto pt-1">
             <Button
               variant="outline"
               size="icon"
               className="h-8 w-8"
-              onClick={() => onEdit?.(tournament.id)}
+              onClick={(event) => {
+                event.preventDefault()
+                event.stopPropagation()
+                onEdit?.(tournament.id)
+              }}
               aria-label={`Editar ${tournament.name}`}
             >
               <Pencil className="h-3.5 w-3.5" />
@@ -85,7 +96,11 @@ export function TournamentList({
                 variant="outline"
                 size="icon"
                 className="h-8 w-8 text-destructive hover:text-destructive"
-                onClick={() => onDelete?.(tournament.id)}
+                onClick={(event) => {
+                  event.preventDefault()
+                  event.stopPropagation()
+                  onDelete?.(tournament.id)
+                }}
                 disabled={isDeleting}
               >
                 {isDeleting ? (
