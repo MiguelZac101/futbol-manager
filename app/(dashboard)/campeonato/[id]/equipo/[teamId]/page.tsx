@@ -9,6 +9,7 @@ import {
   BreadcrumbPage,
   BreadcrumbSeparator,
 } from "@/components/ui/breadcrumb"
+import { PlayerList } from "./components/PlayerList"
 
 export async function generateMetadata({ params }: { params: Promise<{ id: string; teamId: string }> }) {
   const { teamId } = await params
@@ -101,45 +102,7 @@ export default async function TeamDetailPage({ params }: { params: Promise<{ id:
         </div>
       </div>
 
-      <div className="rounded-xl border bg-card p-6">
-        <div className="mb-4 flex items-center justify-between">
-          <h2 className="text-xl font-semibold">Jugadores</h2>
-          <span className="text-sm text-muted-foreground">{team.players.length}</span>
-        </div>
-
-        {team.players.length > 0 ? (
-          <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
-            {team.players.map((player) => (
-              <div key={player.id} className="rounded-lg border bg-muted/10 p-3">
-                <div className="flex items-center gap-3">
-                  <div className="relative h-10 w-10 overflow-hidden rounded-full bg-muted/20">
-                    {player.photoUrl ? (
-                      <Image
-                        src={player.photoUrl}
-                        alt={player.name}
-                        fill
-                        sizes="40px"
-                        className="object-cover"
-                      />
-                    ) : (
-                      <div className="flex h-full w-full items-center justify-center text-xs font-semibold uppercase text-muted-foreground">
-                        {player.name.slice(0, 1)}
-                      </div>
-                    )}
-                  </div>
-
-                  <div className="min-w-0">
-                    <p className="truncate font-medium">{player.name}</p>
-                    <p className="text-xs text-muted-foreground">DNI: {player.dni}</p>
-                  </div>
-                </div>
-              </div>
-            ))}
-          </div>
-        ) : (
-          <p className="text-sm text-muted-foreground">Todavía no hay jugadores cargados en este equipo.</p>
-        )}
-      </div>
+      <PlayerList teamId={team.id} initialPlayers={team.players} />
     </div>
   )
 }
