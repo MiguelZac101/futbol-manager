@@ -11,6 +11,7 @@ import {
 import { TeamList } from "./components/TeamList"
 import { FixtureList } from "./components/FixtureList"
 import { StandingsTable } from "./components/StandingsTable"
+import { FechaConfiguration } from "./components/FechaConfiguration"
 import { getTournamentFechas, getTournamentStandings, getTournamentTeams } from "./actions"
 
 export async function generateMetadata({ params }: { params: Promise<{ id: string }> }) {
@@ -67,7 +68,16 @@ export default async function TournamentDetailPage({
 
       <div className="space-y-6">
         <div className="w-full">
-          <FixtureList tournamentId={id} initialFechas={fechas} teamCount={teams.length} />
+          <FechaConfiguration fechas={fechas} />
+        </div>
+
+        <div className="w-full">
+          <FixtureList
+            key={fechas.map((fecha) => `${fecha.id}:${fecha.status}:${fecha.date}`).join("|")}
+            tournamentId={id}
+            initialFechas={fechas}
+            teamCount={teams.length}
+          />
         </div>
 
         <div className="w-full">

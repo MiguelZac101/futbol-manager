@@ -572,6 +572,37 @@ export async function closeFecha(fechaId: string) {
   return { success: true, fecha }
 }
 
+export async function reopenFecha(fechaId: string) {
+  if (!fechaId) {
+    return { error: "La fecha es inválida." }
+  }
+
+  const currentFecha = await prisma.fecha.findUnique({
+    where: { id: fechaId },
+    select: { status: true },
+  })
+
+  if (!currentFecha) {
+    return { error: "La fecha no existe." }
+  }
+
+  if (currentFecha.status !== "CLOSED") {
+    return { error: "Solo se pueden reabrir fechas cerradas." }
+  }
+
+  const fecha = await prisma.fecha.update({
+    where: { id: fechaId },
+    data: { status: "OPEN" },
+    select: {
+      id: true,
+      status: true,
+    },
+  })
+
+  revalidatePath(`/campeonato`)
+  return { success: true, fecha }
+}
+
 export async function deleteFecha(fechaId: string) {
   if (!fechaId) {
     return { error: "La fecha es inválida." }
