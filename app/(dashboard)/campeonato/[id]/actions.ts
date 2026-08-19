@@ -225,37 +225,6 @@ export async function generateFecha(tournamentId: string) {
   return { success: true, fecha: createdFecha }
 }
 
-async function syncFechaStatus(fechaId: string) {
-  const fecha = await prisma.fecha.findUnique({
-    where: { id: fechaId },
-    include: {
-      matches: {
-        select: { status: true },
-      },
-    },
-  })
-
-  if (!fecha) {
-    return
-  }
-
-  const allMatchesCompleted = fecha.matches.length > 0 && fecha.matches.every((match) => match.status === "COMPLETED")
-
-  if (allMatchesCompleted && fecha.status !== "CLOSED") {
-    await prisma.fecha.update({
-      where: { id: fechaId },
-      data: { status: "CLOSED" },
-    })
-  }
-
-  if (!allMatchesCompleted && fecha.status !== "OPEN") {
-    await prisma.fecha.update({
-      where: { id: fechaId },
-      data: { status: "OPEN" },
-    })
-  }
-}
-
 export async function updateMatchResult(
   matchId: string,
   result: { teamOneScore: number; teamTwoScore: number }
@@ -265,6 +234,19 @@ export async function updateMatchResult(
 
   if (Number.isNaN(teamOneScore) || Number.isNaN(teamTwoScore)) {
     return { error: "Ingresá los dos resultados antes de guardar." }
+  }
+
+  const currentMatch = await prisma.match.findUnique({
+    where: { id: matchId },
+    select: { fecha: { select: { status: true } } },
+  })
+
+  if (!currentMatch) {
+    return { error: "El partido no existe." }
+  }
+
+  if (currentMatch.fecha.status === "CLOSED") {
+    return { error: "La fecha está cerrada y sus resultados son de solo lectura." }
   }
 
   const match = await prisma.match.update({
@@ -296,8 +278,6 @@ export async function updateMatchResult(
     },
   })
 
-  await syncFechaStatus(match.fechaId)
-
   revalidatePath(`/campeonato`)
   return {
     success: true,
@@ -320,6 +300,19 @@ export async function updateFechaDate(fechaId: string, date: string) {
 
   if (!date) {
     return { error: "Ingresá una fecha válida." }
+  }
+
+  const currentFecha = await prisma.fecha.findUnique({
+    where: { id: fechaId },
+    select: { status: true },
+  })
+
+  if (!currentFecha) {
+    return { error: "La fecha no existe." }
+  }
+
+  if (currentFecha.status === "CLOSED") {
+    return { error: "La fecha está cerrada y es de solo lectura." }
   }
 
   const parsedDate = new Date(`${date}T12:00:00`)
@@ -349,9 +342,40 @@ export async function updateFechaDate(fechaId: string, date: string) {
   }
 }
 
+export async function closeFecha(fechaId: string) {
+  if (!fechaId) {
+    return { error: "La fecha es inválida." }
+  }
+
+  const fecha = await prisma.fecha.update({
+    where: { id: fechaId },
+    data: { status: "CLOSED" },
+    select: {
+      id: true,
+      status: true,
+    },
+  })
+
+  revalidatePath(`/campeonato`)
+  return { success: true, fecha }
+}
+
 export async function deleteFecha(fechaId: string) {
   if (!fechaId) {
     return { error: "La fecha es inválida." }
+  }
+
+  const fecha = await prisma.fecha.findUnique({
+    where: { id: fechaId },
+    select: { status: true },
+  })
+
+  if (!fecha) {
+    return { error: "La fecha no existe." }
+  }
+
+  if (fecha.status === "CLOSED") {
+    return { error: "La fecha está cerrada y no se puede eliminar." }
   }
 
   await prisma.fecha.delete({

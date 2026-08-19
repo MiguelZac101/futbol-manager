@@ -1,25 +1,13 @@
 "use client"
 
 import { useState } from "react"
-import { CalendarDays, Trash2 } from "lucide-react"
+import { CalendarDays, LockKeyhole, Trash2 } from "lucide-react"
 import { Button } from "@/components/ui/button"
-import { deleteFecha, generateFecha, updateFechaDate, updateMatchResult, type FixtureDate } from "../actions"
+import { closeFecha, deleteFecha, generateFecha, updateFechaDate, updateMatchResult, type FixtureDate } from "../actions"
 
 interface FixtureListProps {
   tournamentId: string
   initialFechas: FixtureDate[]
-}
-
-function formatFechaDay(fechaNumber: number) {
-  const baseDate = new Date()
-  baseDate.setHours(0, 0, 0, 0)
-  baseDate.setDate(baseDate.getDate() + (fechaNumber - 1) * 7)
-
-  return new Intl.DateTimeFormat("es-AR", {
-    day: "2-digit",
-    month: "2-digit",
-    year: "numeric",
-  }).format(baseDate)
 }
 
 function formatTeamName(name: string) {
@@ -116,6 +104,29 @@ export function FixtureList({ tournamentId, initialFechas }: FixtureListProps) {
     setFechas((current) => current.filter((fecha) => fecha.id !== fechaId))
   }
 
+  async function handleCloseFecha(fechaId: string) {
+    const confirmed = window.confirm(
+      "¿Seguro que querés cerrar esta fecha? La fecha será de solo lectura y se guardarán los datos registrados hasta este momento."
+    )
+
+    if (!confirmed) {
+      return
+    }
+
+    const response = await closeFecha(fechaId)
+
+    if (response?.error) {
+      setError(response.error)
+      return
+    }
+
+    setFechas((current) =>
+      current.map((fecha) =>
+        fecha.id === fechaId ? { ...fecha, status: "CLOSED" as const } : fecha
+      )
+    )
+  }
+
   return (
     <div className="rounded-xl border bg-card p-4">
       <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
@@ -163,12 +174,16 @@ export function FixtureList({ tournamentId, initialFechas }: FixtureListProps) {
 
                   <div className="text-right text-sm text-muted-foreground">
                     <p className="font-medium text-foreground">Día</p>
-                    <input
-                      type="date"
-                      value={fecha.date ?? ""}
-                      onChange={(event) => handleFechaDateChange(fecha.id, event.target.value)}
-                      className="mt-1 w-full rounded-md border bg-background px-2 py-1 text-xs text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-                    />
+                    {fecha.status === "CLOSED" ? (
+                      <p className="mt-1 text-xs text-foreground">{fecha.date ?? "Sin fecha"}</p>
+                    ) : (
+                      <input
+                        type="date"
+                        value={fecha.date ?? ""}
+                        onChange={(event) => handleFechaDateChange(fecha.id, event.target.value)}
+                        className="mt-1 w-full rounded-md border bg-background px-2 py-1 text-xs text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                      />
+                    )}
                   </div>
                 </div>
 
@@ -186,41 +201,49 @@ export function FixtureList({ tournamentId, initialFechas }: FixtureListProps) {
                             {formatTeamName(match.teamOne.name)}
                           </span>
 
-                          <div className="flex items-center gap-2">
-                            <input
-                              type="number"
-                              min={0}
-                              defaultValue={match.teamOneScore ?? ""}
-                              onBlur={(event) => {
-                                const value = Number(event.target.value)
-                                if (Number.isNaN(value)) return
+                          {fecha.status === "CLOSED" ? (
+                            <div className="flex items-center gap-2 text-sm font-semibold text-foreground">
+                              <span>{match.teamOneScore ?? 0}</span>
+                              <span className="text-muted-foreground">:</span>
+                              <span>{match.teamTwoScore ?? 0}</span>
+                            </div>
+                          ) : (
+                            <div className="flex items-center gap-2">
+                              <input
+                                type="number"
+                                min={0}
+                                defaultValue={match.teamOneScore ?? ""}
+                                onBlur={(event) => {
+                                  const value = Number(event.target.value)
+                                  if (Number.isNaN(value)) return
 
-                                handleMatchChange(match.id, {
-                                  teamOneScore: value,
-                                  teamTwoScore: Number(match.teamTwoScore ?? 0),
-                                })
-                              }}
-                              className="h-9 w-12 rounded-md border bg-background px-1 text-center text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-                              placeholder="0"
-                            />
-                            <span className="text-muted-foreground">:</span>
-                            <input
-                              type="number"
-                              min={0}
-                              defaultValue={match.teamTwoScore ?? ""}
-                              onBlur={(event) => {
-                                const value = Number(event.target.value)
-                                if (Number.isNaN(value)) return
+                                  handleMatchChange(match.id, {
+                                    teamOneScore: value,
+                                    teamTwoScore: Number(match.teamTwoScore ?? 0),
+                                  })
+                                }}
+                                className="h-9 w-12 rounded-md border bg-background px-1 text-center text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                                placeholder="0"
+                              />
+                              <span className="text-muted-foreground">:</span>
+                              <input
+                                type="number"
+                                min={0}
+                                defaultValue={match.teamTwoScore ?? ""}
+                                onBlur={(event) => {
+                                  const value = Number(event.target.value)
+                                  if (Number.isNaN(value)) return
 
-                                handleMatchChange(match.id, {
-                                  teamOneScore: Number(match.teamOneScore ?? 0),
-                                  teamTwoScore: value,
-                                })
-                              }}
-                              className="h-9 w-12 rounded-md border bg-background px-1 text-center text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-                              placeholder="0"
-                            />
-                          </div>
+                                  handleMatchChange(match.id, {
+                                    teamOneScore: Number(match.teamOneScore ?? 0),
+                                    teamTwoScore: value,
+                                  })
+                                }}
+                                className="h-9 w-12 rounded-md border bg-background px-1 text-center text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                                placeholder="0"
+                              />
+                            </div>
+                          )}
 
                           <span className="min-w-0 flex-1 text-right text-sm font-medium text-foreground">
                             {formatTeamName(match.teamTwo.name)}
@@ -237,18 +260,30 @@ export function FixtureList({ tournamentId, initialFechas }: FixtureListProps) {
                   </div>
                 ) : null}
 
-                <div className="mt-4 border-t pt-3">
-                  <Button
-                    type="button"
-                    variant="outline"
-                    size="sm"
-                    className="w-full gap-2 text-destructive hover:bg-destructive/10 hover:text-destructive"
-                    onClick={() => handleDeleteFecha(fecha.id)}
-                  >
-                    <Trash2 className="h-3.5 w-3.5" />
-                    Eliminar fecha
-                  </Button>
-                </div>
+                {fecha.status !== "CLOSED" ? (
+                  <div className="mt-4 flex gap-2 border-t pt-3">
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      className="flex-1 gap-2"
+                      onClick={() => handleCloseFecha(fecha.id)}
+                    >
+                      <LockKeyhole className="h-3.5 w-3.5" />
+                      Cerrar fecha
+                    </Button>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      className="flex-1 gap-2 text-destructive hover:bg-destructive/10 hover:text-destructive"
+                      onClick={() => handleDeleteFecha(fecha.id)}
+                    >
+                      <Trash2 className="h-3.5 w-3.5" />
+                      Eliminar fecha
+                    </Button>
+                  </div>
+                ) : null}
               </div>
             ))}
         </div>
