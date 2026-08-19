@@ -233,7 +233,9 @@ export function FixtureList({ tournamentId, initialFechas }: FixtureListProps) {
                                 type="number"
                                 min={0}
                                 defaultValue={match.teamOneScore ?? ""}
-                                onBlur={(event) => {
+                                onChange={(event) => {
+                                  if (event.target.value === "") return
+
                                   const value = Number(event.target.value)
                                   if (Number.isNaN(value)) return
 
@@ -250,7 +252,9 @@ export function FixtureList({ tournamentId, initialFechas }: FixtureListProps) {
                                 type="number"
                                 min={0}
                                 defaultValue={match.teamTwoScore ?? ""}
-                                onBlur={(event) => {
+                                onChange={(event) => {
+                                  if (event.target.value === "") return
+
                                   const value = Number(event.target.value)
                                   if (Number.isNaN(value)) return
 
