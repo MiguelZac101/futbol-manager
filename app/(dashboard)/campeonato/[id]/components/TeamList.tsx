@@ -85,7 +85,7 @@ export function TeamList({ tournamentId, initialTeams }: TeamListProps) {
           <h2 className="text-lg font-semibold">Equipos</h2>
         </div>
 
-        <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
+        <div className="grid gap-4 sm:grid-cols-4 xl:grid-cols-6">
           <button
             type="button"
             onClick={() => {
