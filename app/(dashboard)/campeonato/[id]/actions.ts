@@ -37,6 +37,63 @@ export type FixtureDate = {
   }>
 }
 
+type FixtureTeam = {
+  id: string
+  name: string
+}
+
+type FixturePair = [FixtureTeam, FixtureTeam | null]
+
+function getPairKey(firstTeamId: string, secondTeamId: string) {
+  return [firstTeamId, secondTeamId].sort().join(":")
+}
+
+function findUniquePairings(teams: FixtureTeam[], playedPairs: Set<string>): FixturePair[] | null {
+  const availableTeams: Array<FixtureTeam | null> = [
+    ...teams,
+    ...(teams.length % 2 === 1 ? [null] : []),
+  ].sort(() => Math.random() - 0.5)
+
+  function findPairings(remainingTeams: Array<FixtureTeam | null>): FixturePair[] | null {
+    if (remainingTeams.length === 0) {
+      return []
+    }
+
+    const firstTeam = remainingTeams[0]
+    const candidates = remainingTeams.slice(1).sort(() => Math.random() - 0.5)
+
+    for (const secondTeam of candidates) {
+      if (!firstTeam && !secondTeam) {
+        continue
+      }
+
+      const hasPlayed = firstTeam && secondTeam
+        ? playedPairs.has(getPairKey(firstTeam.id, secondTeam.id))
+        : false
+
+      if (hasPlayed) {
+        continue
+      }
+
+      const nextRemainingTeams = remainingTeams.filter(
+        (team) => team !== firstTeam && team !== secondTeam
+      )
+      const restOfPairings = findPairings(nextRemainingTeams)
+
+      if (restOfPairings) {
+        return [
+          [firstTeam ?? secondTeam!, firstTeam ? secondTeam : null],
+          ...restOfPairings,
+        ]
+      }
+    }
+
+    return null
+  }
+
+  return findPairings(availableTeams)
+}
+
 export async function getTournamentTeams(tournamentId: string) {
   return prisma.team.findMany({
     where: { tournamentId },
@@ -143,7 +200,26 @@ export async function generateFecha(tournamentId: string) {
     }
   }
 
-  const shuffledTeams = [...teams].sort(() => Math.random() - 0.5)
+  const previousMatches = await prisma.match.findMany({
+    where: {
+      fecha: { tournamentId },
+    },
+    select: {
+      teamOneId: true,
+      teamTwoId: true,
+    },
+  })
+
+  const playedPairs = new Set(
+    previousMatches.map((match) => getPairKey(match.teamOneId, match.teamTwoId))
+  )
+  const pairings = findUniquePairings(teams, playedPairs)
+
+  if (!pairings) {
+    return {
+      error: "No quedan cruces disponibles sin repetir para generar otra fecha.",
+    }
+  }
 
   const lastFecha = await prisma.fecha.findFirst({
     where: { tournamentId },
@@ -178,11 +254,14 @@ export async function generateFecha(tournamentId: string) {
       teamTwo: { id: string; name: string }
     }>
 
-    const restingTeams = shuffledTeams.length % 2 === 0 ? [] : [shuffledTeams[shuffledTeams.length - 1]]
+    const restingTeams = pairings
+      .filter(([, secondTeam]) => secondTeam === null)
+      .map(([firstTeam]) => firstTeam)
 
-    for (let index = 0; index < shuffledTeams.length - 1; index += 2) {
-      const teamOne = shuffledTeams[index]
-      const teamTwo = shuffledTeams[index + 1]
+    for (const [index, [teamOne, teamTwo]] of pairings.entries()) {
+      if (!teamTwo) {
+        continue
+      }
 
       const match = await tx.match.create({
         data: {
