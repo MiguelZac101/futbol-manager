@@ -123,6 +123,7 @@ enum FechaStatus {
 model Fecha {
   id               String                @id @default(cuid())
   number           Int
+  date             DateTime?
   status           FechaStatus           @default(OPEN)
   generationMethod FechaGenerationMethod
   createdAt        DateTime              @default(now())

@@ -3,7 +3,7 @@
 import { useState } from "react"
 import { CalendarDays, Trash2 } from "lucide-react"
 import { Button } from "@/components/ui/button"
-import { deleteFecha, generateFecha, updateMatchResult, type FixtureDate } from "../actions"
+import { deleteFecha, generateFecha, updateFechaDate, updateMatchResult, type FixtureDate } from "../actions"
 
 interface FixtureListProps {
   tournamentId: string
@@ -77,6 +77,28 @@ export function FixtureList({ tournamentId, initialFechas }: FixtureListProps) {
     }
   }
 
+  async function handleFechaDateChange(fechaId: string, date: string) {
+    const response = await updateFechaDate(fechaId, date)
+
+    if (response?.error) {
+      setError(response.error)
+      return
+    }
+
+    if (response?.fecha) {
+      setFechas((current) =>
+        current.map((fecha) =>
+          fecha.id === fechaId
+            ? {
+                ...fecha,
+                date: response.fecha.date,
+              }
+            : fecha
+        )
+      )
+    }
+  }
+
   async function handleDeleteFecha(fechaId: string) {
     const confirmed = window.confirm("¿Seguro que querés eliminar esta fecha? Se borrarán todos sus partidos.")
 
@@ -141,7 +163,12 @@ export function FixtureList({ tournamentId, initialFechas }: FixtureListProps) {
 
                   <div className="text-right text-sm text-muted-foreground">
                     <p className="font-medium text-foreground">Día</p>
-                    <span>{formatFechaDay(fecha.number)}</span>
+                    <input
+                      type="date"
+                      value={fecha.date ?? ""}
+                      onChange={(event) => handleFechaDateChange(fecha.id, event.target.value)}
+                      className="mt-1 w-full rounded-md border bg-background px-2 py-1 text-xs text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                    />
                   </div>
                 </div>
 

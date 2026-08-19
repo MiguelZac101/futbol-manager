@@ -28,6 +28,7 @@ export type FixtureMatch = {
 export type FixtureDate = {
   id: string
   number: number
+  date: string | null
   status: "OPEN" | "CLOSED"
   matches: FixtureMatch[]
 }
@@ -51,6 +52,7 @@ export async function getTournamentFechas(tournamentId: string): Promise<Fixture
     select: {
       id: true,
       number: true,
+      date: true,
       status: true,
       matches: {
         orderBy: { slot: "asc" },
@@ -80,6 +82,7 @@ export async function getTournamentFechas(tournamentId: string): Promise<Fixture
   return fechas.map((fecha) => ({
     id: fecha.id,
     number: fecha.number,
+    date: fecha.date ? fecha.date.toISOString().slice(0, 10) : null,
     status: fecha.status,
     matches: fecha.matches.map((match) => ({
       id: match.id,
@@ -125,11 +128,13 @@ export async function generateFecha(tournamentId: string) {
       data: {
         tournamentId,
         number: nextNumber,
+        date: new Date(),
         generationMethod: "RANDOM",
       },
       select: {
         id: true,
         number: true,
+        date: true,
       },
     })
 
@@ -192,6 +197,7 @@ export async function generateFecha(tournamentId: string) {
     return {
       id: fecha.id,
       number: fecha.number,
+      date: fecha.date ? fecha.date.toISOString().slice(0, 10) : null,
       status: "OPEN" as const,
       matches: createdMatches,
     }
@@ -285,6 +291,42 @@ export async function updateMatchResult(
       teamTwoScore: match.teamTwoScore,
       teamOne: match.teamOne,
       teamTwo: match.teamTwo,
+    },
+  }
+}
+
+export async function updateFechaDate(fechaId: string, date: string) {
+  if (!fechaId) {
+    return { error: "La fecha es inválida." }
+  }
+
+  if (!date) {
+    return { error: "Ingresá una fecha válida." }
+  }
+
+  const parsedDate = new Date(`${date}T12:00:00`)
+
+  if (Number.isNaN(parsedDate.getTime())) {
+    return { error: "La fecha ingresada no es válida." }
+  }
+
+  const fecha = await prisma.fecha.update({
+    where: { id: fechaId },
+    data: { date: parsedDate },
+    select: {
+      id: true,
+      number: true,
+      date: true,
+    },
+  })
+
+  revalidatePath(`/campeonato`)
+  return {
+    success: true,
+    fecha: {
+      id: fecha.id,
+      number: fecha.number,
+      date: fecha.date ? fecha.date.toISOString().slice(0, 10) : null,
     },
   }
 }
