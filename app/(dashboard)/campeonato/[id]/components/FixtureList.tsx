@@ -14,6 +14,15 @@ function formatTeamName(name: string) {
   return name.replace(/\b\w/g, (char) => char.toUpperCase())
 }
 
+function formatClosedFechaDate(date: string | null) {
+  if (!date) {
+    return "Sin fecha"
+  }
+
+  const [year, month, day] = date.split("-")
+  return `${day}/${month}/${year}`
+}
+
 export function FixtureList({ tournamentId, initialFechas }: FixtureListProps) {
   const [fechas, setFechas] = useState(initialFechas)
   const [isGenerating, setIsGenerating] = useState(false)
@@ -179,7 +188,7 @@ export function FixtureList({ tournamentId, initialFechas }: FixtureListProps) {
                   <div className="text-right text-sm text-muted-foreground">
                     <p className="font-medium text-foreground">Día</p>
                     {fecha.status === "CLOSED" ? (
-                      <p className="mt-1 text-xs text-foreground">{fecha.date ?? "Sin fecha"}</p>
+                      <p className="mt-1 text-xs text-foreground">{formatClosedFechaDate(fecha.date)}</p>
                     ) : (
                       <input
                         type="date"
