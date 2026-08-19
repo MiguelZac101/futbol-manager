@@ -7,6 +7,7 @@ import {
   closeFecha,
   deleteFecha,
   generateFecha,
+  toggleMatchStatus,
   updateFechaDate,
   updateMatchResult,
   type FixtureDate,
@@ -81,6 +82,28 @@ export function FixtureList({ tournamentId, initialFechas, teamCount }: FixtureL
                   teamOneScore: response.match.teamOneScore,
                   teamTwoScore: response.match.teamTwoScore,
                 }
+              : match
+          ),
+        }))
+      )
+    }
+  }
+
+  async function handleMatchStatusToggle(matchId: string) {
+    const response = await toggleMatchStatus(matchId)
+
+    if (response?.error) {
+      setError(response.error)
+      return
+    }
+
+    if (response?.match) {
+      setFechas((current) =>
+        current.map((fecha) => ({
+          ...fecha,
+          matches: fecha.matches.map((match) =>
+            match.id === matchId
+              ? { ...match, status: response.match.status }
               : match
           ),
         }))
@@ -226,7 +249,16 @@ export function FixtureList({ tournamentId, initialFechas, teamCount }: FixtureL
                     .map((match) => (
                       <div
                         key={match.id}
-                        className="flex flex-col gap-3 rounded-lg border bg-background p-3"
+                        onClick={() => {
+                          if (fecha.status !== "CLOSED") {
+                            handleMatchStatusToggle(match.id)
+                          }
+                        }}
+                        className={`flex flex-col gap-3 rounded-lg border p-3 transition-colors ${
+                          match.status === "IN_PROGRESS"
+                            ? "cursor-pointer border-emerald-500/60 bg-emerald-500/15"
+                            : "cursor-pointer bg-background"
+                        }`}
                       >
                         <div className="flex items-center justify-between gap-2">
                           <span className="min-w-0 flex-1 text-left text-sm font-medium text-foreground">
@@ -239,12 +271,13 @@ export function FixtureList({ tournamentId, initialFechas, teamCount }: FixtureL
                               <span className="text-muted-foreground">:</span>
                               <span>{match.teamTwoScore ?? 0}</span>
                             </div>
-                          ) : (
+                          ) : match.status === "IN_PROGRESS" ? (
                             <div className="flex items-center gap-2">
                               <input
                                 type="number"
                                 min={0}
                                 defaultValue={match.teamOneScore ?? ""}
+                                onClick={(event) => event.stopPropagation()}
                                 onChange={(event) => {
                                   if (event.target.value === "") return
 
@@ -264,6 +297,7 @@ export function FixtureList({ tournamentId, initialFechas, teamCount }: FixtureL
                                 type="number"
                                 min={0}
                                 defaultValue={match.teamTwoScore ?? ""}
+                                onClick={(event) => event.stopPropagation()}
                                 onChange={(event) => {
                                   if (event.target.value === "") return
 
@@ -278,6 +312,12 @@ export function FixtureList({ tournamentId, initialFechas, teamCount }: FixtureL
                                 className="h-9 w-12 rounded-md border bg-background px-1 text-center text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                                 placeholder="0"
                               />
+                            </div>
+                          ) : (
+                            <div className="flex items-center gap-2 text-sm font-semibold text-muted-foreground">
+                              <span>{match.teamOneScore ?? 0}</span>
+                              <span>:</span>
+                              <span>{match.teamTwoScore ?? 0}</span>
                             </div>
                           )}
 

@@ -12,7 +12,7 @@ const teamSchema = z.object({
 export type FixtureMatch = {
   id: string
   slot: number
-  status: "SCHEDULED" | "COMPLETED"
+  status: "SCHEDULED" | "IN_PROGRESS" | "COMPLETED"
   teamOneScore: number | null
   teamTwoScore: number | null
   teamOne: {
@@ -127,7 +127,7 @@ export async function getTournamentStandings(tournamentId: string): Promise<Stan
     }),
     prisma.match.findMany({
       where: {
-        status: "COMPLETED",
+        status: { in: ["IN_PROGRESS", "COMPLETED"] },
         fecha: { tournamentId },
       },
       select: {
@@ -352,7 +352,7 @@ export async function generateFecha(tournamentId: string) {
     const createdMatches = [] as Array<{
       id: string
       slot: number
-      status: "SCHEDULED" | "COMPLETED"
+      status: "SCHEDULED" | "IN_PROGRESS" | "COMPLETED"
       teamOneScore: number | null
       teamTwoScore: number | null
       teamOne: { id: string; name: string }
@@ -437,7 +437,7 @@ export async function updateMatchResult(
 
   const currentMatch = await prisma.match.findUnique({
     where: { id: matchId },
-    select: { fecha: { select: { status: true } } },
+    select: { status: true, fecha: { select: { status: true } } },
   })
 
   if (!currentMatch) {
@@ -453,7 +453,7 @@ export async function updateMatchResult(
     data: {
       teamOneScore,
       teamTwoScore,
-      status: "COMPLETED",
+      status: currentMatch.status,
     },
     select: {
       id: true,
@@ -490,6 +490,38 @@ export async function updateMatchResult(
       teamTwo: match.teamTwo,
     },
   }
+}
+
+export async function toggleMatchStatus(matchId: string) {
+  if (!matchId) {
+    return { error: "El partido es inválido." }
+  }
+
+  const currentMatch = await prisma.match.findUnique({
+    where: { id: matchId },
+    select: {
+      status: true,
+      fecha: { select: { status: true } },
+    },
+  })
+
+  if (!currentMatch) {
+    return { error: "El partido no existe." }
+  }
+
+  if (currentMatch.fecha.status === "CLOSED") {
+    return { error: "La fecha está cerrada y sus partidos son de solo lectura." }
+  }
+
+  const nextStatus = currentMatch.status === "IN_PROGRESS" ? "COMPLETED" : "IN_PROGRESS"
+  const match = await prisma.match.update({
+    where: { id: matchId },
+    data: { status: nextStatus },
+    select: { id: true, status: true },
+  })
+
+  revalidatePath(`/campeonato`)
+  return { success: true, match }
 }
 
 export async function updateFechaDate(fechaId: string, date: string) {
@@ -563,7 +595,7 @@ export async function closeFecha(fechaId: string) {
     await tx.match.updateMany({
       where: {
         fechaId,
-        status: "SCHEDULED",
+        status: { in: ["SCHEDULED", "IN_PROGRESS"] },
       },
       data: { status: "COMPLETED" },
     })
