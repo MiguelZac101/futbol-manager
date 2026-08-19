@@ -128,6 +128,21 @@ export async function generateFecha(tournamentId: string) {
     return { error: "Necesitás al menos 2 equipos para generar una fecha." }
   }
 
+  const openFecha = await prisma.fecha.findFirst({
+    where: {
+      tournamentId,
+      status: "OPEN",
+    },
+    orderBy: { number: "asc" },
+    select: { number: true },
+  })
+
+  if (openFecha) {
+    return {
+      error: `No se puede generar la fecha siguiente hasta cerrar la fecha ${openFecha.number}.`,
+    }
+  }
+
   const shuffledTeams = [...teams].sort(() => Math.random() - 0.5)
 
   const lastFecha = await prisma.fecha.findFirst({
