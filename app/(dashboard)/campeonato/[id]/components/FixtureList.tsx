@@ -1,13 +1,14 @@
 "use client"
 
 import { useState } from "react"
-import { CalendarDays, LockKeyhole, Trash2 } from "lucide-react"
+import { CalendarDays, Clock3, LockKeyhole, Trash2 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import {
   closeFecha,
   deleteFecha,
   generateFecha,
   toggleMatchStatus,
+  updateMatchScheduledTime,
   updateFechaDate,
   updateMatchResult,
   type FixtureDate,
@@ -30,6 +31,16 @@ function formatClosedFechaDate(date: string | null) {
 
   const [year, month, day] = date.split("-")
   return `${day}/${month}/${year}`
+}
+
+function formatMatchTime(scheduledAt: string | null) {
+  return scheduledAt
+    ? new Date(scheduledAt).toISOString().slice(11, 16)
+    : "Sin horario"
+}
+
+function getMatchTimeInputValue(scheduledAt: string | null) {
+  return scheduledAt ? new Date(scheduledAt).toISOString().slice(11, 16) : ""
 }
 
 export function FixtureList({ tournamentId, initialFechas, teamCount }: FixtureListProps) {
@@ -104,6 +115,28 @@ export function FixtureList({ tournamentId, initialFechas, teamCount }: FixtureL
           matches: fecha.matches.map((match) =>
             match.id === matchId
               ? { ...match, status: response.match.status }
+              : match
+          ),
+        }))
+      )
+    }
+  }
+
+  async function handleMatchScheduledTimeChange(matchId: string, time: string) {
+    const response = await updateMatchScheduledTime(matchId, time)
+
+    if (response?.error) {
+      setError(response.error)
+      return
+    }
+
+    if (response?.match) {
+      setFechas((current) =>
+        current.map((fecha) => ({
+          ...fecha,
+          matches: fecha.matches.map((match) =>
+            match.id === matchId
+              ? { ...match, scheduledAt: response.match.scheduledAt }
               : match
           ),
         }))
@@ -260,6 +293,29 @@ export function FixtureList({ tournamentId, initialFechas, teamCount }: FixtureL
                             : "cursor-pointer bg-background"
                         }`}
                       >
+                        <div className="flex items-center justify-between gap-2 border-b pb-2 text-xs text-muted-foreground">
+                          <span className="flex items-center gap-1.5">
+                            <Clock3 className="h-3.5 w-3.5" />
+                            Horario
+                          </span>
+                          {fecha.status === "CLOSED" ? (
+                            <span className="font-medium text-foreground">
+                              {formatMatchTime(match.scheduledAt)}
+                            </span>
+                          ) : (
+                            <input
+                              type="time"
+                              value={getMatchTimeInputValue(match.scheduledAt)}
+                              onClick={(event) => event.stopPropagation()}
+                              onChange={(event) =>
+                                handleMatchScheduledTimeChange(match.id, event.target.value)
+                              }
+                              className="rounded-md border bg-background px-2 py-1 text-xs text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                              aria-label={`Horario del partido entre ${match.teamOne.name} y ${match.teamTwo.name}`}
+                            />
+                          )}
+                        </div>
+
                         <div className="flex items-center justify-between gap-2">
                           <span className="min-w-0 flex-1 text-left text-sm font-medium text-foreground">
                             {formatTeamName(match.teamOne.name)}

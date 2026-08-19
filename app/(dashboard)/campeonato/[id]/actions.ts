@@ -12,6 +12,7 @@ const teamSchema = z.object({
 export type FixtureMatch = {
   id: string
   slot: number
+  scheduledAt: string | null
   status: "SCHEDULED" | "IN_PROGRESS" | "COMPLETED"
   teamOneScore: number | null
   teamTwoScore: number | null
@@ -225,6 +226,7 @@ export async function getTournamentFechas(tournamentId: string): Promise<Fixture
           select: {
             id: true,
             slot: true,
+            scheduledAt: true,
             status: true,
             teamOneScore: true,
             teamTwoScore: true,
@@ -258,6 +260,7 @@ export async function getTournamentFechas(tournamentId: string): Promise<Fixture
     matches: fecha.matches.map((match) => ({
       id: match.id,
       slot: match.slot,
+      scheduledAt: match.scheduledAt?.toISOString() ?? null,
       status: match.status,
       teamOneScore: match.teamOneScore,
       teamTwoScore: match.teamTwoScore,
@@ -352,6 +355,7 @@ export async function generateFecha(tournamentId: string) {
     const createdMatches = [] as Array<{
       id: string
       slot: number
+      scheduledAt: string | null
       status: "SCHEDULED" | "IN_PROGRESS" | "COMPLETED"
       teamOneScore: number | null
       teamTwoScore: number | null
@@ -372,6 +376,7 @@ export async function generateFecha(tournamentId: string) {
         data: {
           fechaId: fecha.id,
           slot: index + 1,
+          scheduledAt: null,
           teamOneId: teamOne.id,
           teamTwoId: teamTwo.id,
           status: "SCHEDULED",
@@ -381,6 +386,7 @@ export async function generateFecha(tournamentId: string) {
         select: {
           id: true,
           slot: true,
+          scheduledAt: true,
           status: true,
           teamOneScore: true,
           teamTwoScore: true,
@@ -402,6 +408,7 @@ export async function generateFecha(tournamentId: string) {
       createdMatches.push({
         id: match.id,
         slot: match.slot,
+        scheduledAt: match.scheduledAt?.toISOString() ?? null,
         status: match.status,
         teamOneScore: match.teamOneScore,
         teamTwoScore: match.teamTwoScore,
@@ -492,6 +499,52 @@ export async function updateMatchResult(
   }
 }
 
+export async function updateMatchScheduledTime(matchId: string, time: string) {
+  if (!matchId) {
+    return { error: "El partido es inválido." }
+  }
+
+  if (!/^([01]\d|2[0-3]):[0-5]\d$/.test(time)) {
+    return { error: "Ingresá una hora válida." }
+  }
+
+  const currentMatch = await prisma.match.findUnique({
+    where: { id: matchId },
+    select: {
+      fecha: { select: { date: true, status: true } },
+    },
+  })
+
+  if (!currentMatch) {
+    return { error: "El partido no existe." }
+  }
+
+  if (currentMatch.fecha.status === "CLOSED") {
+    return { error: "La fecha está cerrada y sus partidos son de solo lectura." }
+  }
+
+  const date = currentMatch.fecha.date?.toISOString().slice(0, 10)
+  if (!date) {
+    return { error: "Seleccioná un día para la fecha antes de asignar horarios." }
+  }
+
+  const scheduledAt = new Date(`${date}T${time}:00`)
+  const match = await prisma.match.update({
+    where: { id: matchId },
+    data: { scheduledAt },
+    select: { id: true, scheduledAt: true },
+  })
+
+  revalidatePath(`/campeonato`)
+  return {
+    success: true,
+    match: {
+      id: match.id,
+      scheduledAt: match.scheduledAt?.toISOString() ?? null,
+    },
+  }
+}
+
 export async function toggleMatchStatus(matchId: string) {
   if (!matchId) {
     return { error: "El partido es inválido." }
@@ -552,14 +605,29 @@ export async function updateFechaDate(fechaId: string, date: string) {
     return { error: "La fecha ingresada no es válida." }
   }
 
-  const fecha = await prisma.fecha.update({
-    where: { id: fechaId },
-    data: { date: parsedDate },
-    select: {
-      id: true,
-      number: true,
-      date: true,
-    },
+  const fecha = await prisma.$transaction(async (tx) => {
+    const matches = await tx.match.findMany({
+      where: { fechaId, scheduledAt: { not: null } },
+      select: { id: true, scheduledAt: true },
+    })
+
+    for (const match of matches) {
+      const scheduledTime = match.scheduledAt!.toISOString().slice(11, 19)
+      await tx.match.update({
+        where: { id: match.id },
+        data: { scheduledAt: new Date(`${date}T${scheduledTime}`) },
+      })
+    }
+
+    return tx.fecha.update({
+      where: { id: fechaId },
+      data: { date: parsedDate },
+      select: {
+        id: true,
+        number: true,
+        date: true,
+      },
+    })
   })
 
   revalidatePath(`/campeonato`)
