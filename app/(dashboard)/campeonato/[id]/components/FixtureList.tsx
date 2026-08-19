@@ -8,6 +8,7 @@ import { closeFecha, deleteFecha, generateFecha, updateFechaDate, updateMatchRes
 interface FixtureListProps {
   tournamentId: string
   initialFechas: FixtureDate[]
+  teamCount: number
 }
 
 function formatTeamName(name: string) {
@@ -23,10 +24,12 @@ function formatClosedFechaDate(date: string | null) {
   return `${day}/${month}/${year}`
 }
 
-export function FixtureList({ tournamentId, initialFechas }: FixtureListProps) {
+export function FixtureList({ tournamentId, initialFechas, teamCount }: FixtureListProps) {
   const [fechas, setFechas] = useState(initialFechas)
   const [isGenerating, setIsGenerating] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const maximumFechaCount = teamCount % 2 === 0 ? teamCount - 1 : teamCount
+  const canGenerateFecha = teamCount >= 2 && fechas.length < maximumFechaCount
 
   async function handleGenerateFecha() {
     setError(null)
@@ -155,9 +158,11 @@ export function FixtureList({ tournamentId, initialFechas }: FixtureListProps) {
           <h2 className="text-lg font-semibold">Fixture</h2>
         </div>
 
-        <Button type="button" onClick={handleGenerateFecha} disabled={isGenerating}>
-          {isGenerating ? "Generando..." : "Generar fecha"}
-        </Button>
+        {canGenerateFecha ? (
+          <Button type="button" onClick={handleGenerateFecha} disabled={isGenerating}>
+            {isGenerating ? "Generando..." : "Generar fecha"}
+          </Button>
+        ) : null}
       </div>
 
       {error ? <p className="mb-4 text-sm text-destructive">{error}</p> : null}

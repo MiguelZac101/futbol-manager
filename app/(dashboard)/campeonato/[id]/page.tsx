@@ -65,7 +65,7 @@ export default async function TournamentDetailPage({
 
       <div className="space-y-6">
         <div className="w-full">
-          <FixtureList tournamentId={id} initialFechas={fechas} />
+          <FixtureList tournamentId={id} initialFechas={fechas} teamCount={teams.length} />
         </div>
 
         <div className="w-full">
