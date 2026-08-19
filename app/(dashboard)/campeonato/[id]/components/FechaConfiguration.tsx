@@ -2,7 +2,7 @@
 
 import { useState } from "react"
 import { useRouter } from "next/navigation"
-import { Settings2 } from "lucide-react"
+import { CalendarDays, Settings2 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import {
   Select,
@@ -59,35 +59,42 @@ export function FechaConfiguration({ fechas }: FechaConfigurationProps) {
         <Settings2 className="h-4 w-4 text-muted-foreground" />
         <h2 className="text-lg font-semibold">Configuración</h2>
       </div>
-      <div className="flex flex-col gap-3 sm:flex-row sm:items-end">
-        <div className="flex-1 space-y-1.5">
-          <label className="text-sm font-medium" htmlFor="reopen-fecha">
-            Reabrir fecha cerrada
-          </label>
-          <Select value={selectedFechaId} onValueChange={setSelectedFechaId}>
-            <SelectTrigger id="reopen-fecha" className="w-full">
-              <SelectValue placeholder="Seleccioná una fecha" />
-            </SelectTrigger>
-            <SelectContent>
-              {closedFechas.map((fecha) => (
-                <SelectItem key={fecha.id} value={fecha.id}>
-                  Fecha {fecha.number}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-          {closedFechas.length === 0 ? (
-            <p className="text-xs text-muted-foreground">No hay fechas cerradas para reabrir.</p>
-          ) : null}
+      <div className="grid gap-4 md:grid-cols-3">
+        <div className="space-y-3 rounded-lg border bg-muted/20 p-3">
+          <div className="flex items-center gap-2">
+            <CalendarDays className="h-4 w-4 text-muted-foreground" />
+            <h3 className="text-sm font-semibold">Fixture</h3>
+          </div>
+          <div className="space-y-1.5">
+            <label className="text-sm font-medium" htmlFor="reopen-fecha">
+              Reabrir fecha cerrada
+            </label>
+            <Select value={selectedFechaId} onValueChange={setSelectedFechaId}>
+              <SelectTrigger id="reopen-fecha" className="w-full">
+                <SelectValue placeholder="Seleccioná una fecha" />
+              </SelectTrigger>
+              <SelectContent>
+                {closedFechas.map((fecha) => (
+                  <SelectItem key={fecha.id} value={fecha.id}>
+                    Fecha {fecha.number}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            {closedFechas.length === 0 ? (
+              <p className="text-xs text-muted-foreground">No hay fechas cerradas para reabrir.</p>
+            ) : null}
+          </div>
+          <Button
+            type="button"
+            variant="outline"
+            className="w-full cursor-pointer"
+            onClick={handleReopenFecha}
+            disabled={isReopening || closedFechas.length === 0}
+          >
+            {isReopening ? "Reabriendo..." : "Reabrir fecha"}
+          </Button>
         </div>
-        <Button
-          type="button"
-          variant="outline"
-          onClick={handleReopenFecha}
-          disabled={isReopening || closedFechas.length === 0}
-        >
-          {isReopening ? "Reabriendo..." : "Reabrir fecha"}
-        </Button>
       </div>
       {error ? <p className="mt-3 text-sm text-destructive">{error}</p> : null}
     </div>
