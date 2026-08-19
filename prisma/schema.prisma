@@ -46,6 +46,8 @@ model Tournament {
   status             TournamentStatus   @default(UPCOMING)
   tiebreakerCriteria TiebreakerCriteria @default(GOALS_FOR)
   startDate          DateTime?
+  fixtureStartTime   String             @default("10:00")
+  matchIntervalMinutes Int              @default(40)
   createdAt          DateTime           @default(now())
   updatedAt          DateTime           @updatedAt
 

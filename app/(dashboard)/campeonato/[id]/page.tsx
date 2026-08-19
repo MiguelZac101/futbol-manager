@@ -68,7 +68,12 @@ export default async function TournamentDetailPage({
 
       <div className="space-y-6">
         <div className="w-full">
-          <FechaConfiguration fechas={fechas} />
+          <FechaConfiguration
+            tournamentId={id}
+            fechas={fechas}
+            initialFixtureStartTime={tournament.fixtureStartTime}
+            initialMatchIntervalMinutes={tournament.matchIntervalMinutes}
+          />
         </div>
 
         <div className="w-full">

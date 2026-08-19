@@ -282,11 +282,21 @@ export async function getTournamentFechas(tournamentId: string): Promise<Fixture
 }
 
 export async function generateFecha(tournamentId: string) {
-  const teams = await prisma.team.findMany({
+  const [teams, tournament] = await Promise.all([
+    prisma.team.findMany({
     where: { tournamentId },
     select: { id: true, name: true },
     orderBy: { name: "asc" },
-  })
+    }),
+    prisma.tournament.findUnique({
+      where: { id: tournamentId },
+      select: { fixtureStartTime: true, matchIntervalMinutes: true },
+    }),
+  ])
+
+  if (!tournament) {
+    return { error: "El campeonato no existe." }
+  }
 
   if (teams.length < 2) {
     return { error: "Necesitás al menos 2 equipos para generar una fecha." }
@@ -336,6 +346,10 @@ export async function generateFecha(tournamentId: string) {
   })
 
   const nextNumber = (lastFecha?.number ?? 0) + 1
+  const fixtureDate = new Date()
+  const firstMatchTime = new Date(
+    `${fixtureDate.toISOString().slice(0, 10)}T${tournament.fixtureStartTime}:00`
+  )
 
   const createdFecha = await prisma.$transaction(async (tx) => {
     const fecha = await tx.fecha.create({
@@ -367,16 +381,22 @@ export async function generateFecha(tournamentId: string) {
       .filter(([, secondTeam]) => secondTeam === null)
       .map(([firstTeam]) => firstTeam)
 
-    for (const [index, [teamOne, teamTwo]] of pairings.entries()) {
+    let matchNumber = 0
+
+    for (const [teamOne, teamTwo] of pairings) {
       if (!teamTwo) {
         continue
       }
 
+      const slot = matchNumber + 1
+
       const match = await tx.match.create({
         data: {
           fechaId: fecha.id,
-          slot: index + 1,
-          scheduledAt: null,
+          slot,
+          scheduledAt: new Date(
+            firstMatchTime.getTime() + matchNumber * tournament.matchIntervalMinutes * 60_000
+          ),
           teamOneId: teamOne.id,
           teamTwoId: teamTwo.id,
           status: "SCHEDULED",
@@ -415,6 +435,8 @@ export async function generateFecha(tournamentId: string) {
         teamOne: match.teamOne,
         teamTwo: match.teamTwo,
       })
+
+      matchNumber += 1
     }
 
     return {
@@ -429,6 +451,39 @@ export async function generateFecha(tournamentId: string) {
 
   revalidatePath(`/campeonato/${tournamentId}`)
   return { success: true, fecha: createdFecha }
+}
+
+export async function updateFixtureSettings(
+  tournamentId: string,
+  settings: { fixtureStartTime: string; matchIntervalMinutes: number }
+) {
+  if (!tournamentId) {
+    return { error: "El campeonato es inválido." }
+  }
+
+  if (!/^([01]\d|2[0-3]):[0-5]\d$/.test(settings.fixtureStartTime)) {
+    return { error: "Ingresá una hora de inicio válida." }
+  }
+
+  const interval = Number(settings.matchIntervalMinutes)
+  if (!Number.isInteger(interval) || interval < 1) {
+    return { error: "El intervalo debe ser un número entero mayor a cero." }
+  }
+
+  const tournament = await prisma.tournament.update({
+    where: { id: tournamentId },
+    data: {
+      fixtureStartTime: settings.fixtureStartTime,
+      matchIntervalMinutes: interval,
+    },
+    select: {
+      fixtureStartTime: true,
+      matchIntervalMinutes: true,
+    },
+  })
+
+  revalidatePath(`/campeonato/${tournamentId}`)
+  return { success: true, tournament }
 }
 
 export async function updateMatchResult(
