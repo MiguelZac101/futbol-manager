@@ -559,13 +559,23 @@ export async function closeFecha(fechaId: string) {
     return { error: "Seleccioná un día para la fecha antes de cerrarla." }
   }
 
-  const fecha = await prisma.fecha.update({
-    where: { id: fechaId },
-    data: { status: "CLOSED" },
-    select: {
-      id: true,
-      status: true,
-    },
+  const fecha = await prisma.$transaction(async (tx) => {
+    await tx.match.updateMany({
+      where: {
+        fechaId,
+        status: "SCHEDULED",
+      },
+      data: { status: "COMPLETED" },
+    })
+
+    return tx.fecha.update({
+      where: { id: fechaId },
+      data: { status: "CLOSED" },
+      select: {
+        id: true,
+        status: true,
+      },
+    })
   })
 
   revalidatePath(`/campeonato`)
