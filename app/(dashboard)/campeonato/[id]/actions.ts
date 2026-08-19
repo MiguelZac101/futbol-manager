@@ -106,6 +106,110 @@ export async function getTournamentTeams(tournamentId: string) {
   })
 }
 
+export type StandingsRow = {
+  teamId: string
+  teamName: string
+  played: number
+  won: number
+  drawn: number
+  lost: number
+  goalsFor: number
+  goalsAgainst: number
+  goalDifference: number
+  points: number
+}
+
+export async function getTournamentStandings(tournamentId: string): Promise<StandingsRow[]> {
+  const [teams, matches] = await Promise.all([
+    prisma.team.findMany({
+      where: { tournamentId },
+      select: { id: true, name: true },
+    }),
+    prisma.match.findMany({
+      where: {
+        status: "COMPLETED",
+        fecha: { tournamentId },
+      },
+      select: {
+        teamOneId: true,
+        teamTwoId: true,
+        teamOneScore: true,
+        teamTwoScore: true,
+      },
+    }),
+  ])
+
+  const standings = new Map<string, StandingsRow>(
+    teams.map((team) => [team.id, {
+      teamId: team.id,
+      teamName: team.name,
+      played: 0,
+      won: 0,
+      drawn: 0,
+      lost: 0,
+      goalsFor: 0,
+      goalsAgainst: 0,
+      goalDifference: 0,
+      points: 0,
+    }])
+  )
+
+  for (const match of matches) {
+    const teamOne = standings.get(match.teamOneId)
+    const teamTwo = standings.get(match.teamTwoId)
+
+    if (!teamOne || !teamTwo) {
+      continue
+    }
+
+    const teamOneScore = match.teamOneScore ?? 0
+    const teamTwoScore = match.teamTwoScore ?? 0
+
+    teamOne.played += 1
+    teamTwo.played += 1
+    teamOne.goalsFor += teamOneScore
+    teamOne.goalsAgainst += teamTwoScore
+    teamTwo.goalsFor += teamTwoScore
+    teamTwo.goalsAgainst += teamOneScore
+
+    if (teamOneScore > teamTwoScore) {
+      teamOne.won += 1
+      teamOne.points += 3
+      teamTwo.lost += 1
+    } else if (teamOneScore < teamTwoScore) {
+      teamTwo.won += 1
+      teamTwo.points += 3
+      teamOne.lost += 1
+    } else {
+      teamOne.drawn += 1
+      teamTwo.drawn += 1
+      teamOne.points += 1
+      teamTwo.points += 1
+    }
+  }
+
+  const rows = Array.from(standings.values()).map((row) => ({
+    ...row,
+    goalDifference: row.goalsFor - row.goalsAgainst,
+  }))
+
+  return rows.sort((firstRow, secondRow) => {
+    if (firstRow.points !== secondRow.points) {
+      return secondRow.points - firstRow.points
+    }
+
+    if (firstRow.goalsFor !== secondRow.goalsFor) {
+      return secondRow.goalsFor - firstRow.goalsFor
+    }
+
+    if (firstRow.goalDifference !== secondRow.goalDifference) {
+      return secondRow.goalDifference - firstRow.goalDifference
+    }
+
+    return firstRow.teamName.localeCompare(secondRow.teamName, "es")
+  })
+}
+
 export async function getTournamentFechas(tournamentId: string): Promise<FixtureDate[]> {
   const [fechas, teams] = await Promise.all([
     prisma.fecha.findMany({

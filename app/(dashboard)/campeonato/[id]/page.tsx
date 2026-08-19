@@ -10,7 +10,8 @@ import {
 } from "@/components/ui/breadcrumb"
 import { TeamList } from "./components/TeamList"
 import { FixtureList } from "./components/FixtureList"
-import { getTournamentFechas, getTournamentTeams } from "./actions"
+import { StandingsTable } from "./components/StandingsTable"
+import { getTournamentFechas, getTournamentStandings, getTournamentTeams } from "./actions"
 
 export async function generateMetadata({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params
@@ -41,6 +42,7 @@ export default async function TournamentDetailPage({
 
   const teams = await getTournamentTeams(id)
   const fechas = await getTournamentFechas(id)
+  const standings = await getTournamentStandings(id)
 
   return (
     <div className="space-y-6 p-6">
@@ -66,6 +68,10 @@ export default async function TournamentDetailPage({
       <div className="space-y-6">
         <div className="w-full">
           <FixtureList tournamentId={id} initialFechas={fechas} teamCount={teams.length} />
+        </div>
+
+        <div className="w-full">
+          <StandingsTable standings={standings} />
         </div>
 
         <div className="w-full">
