@@ -31,6 +31,10 @@ export type FixtureDate = {
   date: string | null
   status: "OPEN" | "CLOSED"
   matches: FixtureMatch[]
+  restingTeams: Array<{
+    id: string
+    name: string
+  }>
 }
 
 export async function getTournamentTeams(tournamentId: string) {
@@ -46,38 +50,44 @@ export async function getTournamentTeams(tournamentId: string) {
 }
 
 export async function getTournamentFechas(tournamentId: string): Promise<FixtureDate[]> {
-  const fechas = await prisma.fecha.findMany({
-    where: { tournamentId },
-    orderBy: { number: "asc" },
-    select: {
-      id: true,
-      number: true,
-      date: true,
-      status: true,
-      matches: {
-        orderBy: { slot: "asc" },
-        select: {
-          id: true,
-          slot: true,
-          status: true,
-          teamOneScore: true,
-          teamTwoScore: true,
-          teamOne: {
-            select: {
-              id: true,
-              name: true,
+  const [fechas, teams] = await Promise.all([
+    prisma.fecha.findMany({
+      where: { tournamentId },
+      orderBy: { number: "asc" },
+      select: {
+        id: true,
+        number: true,
+        date: true,
+        status: true,
+        matches: {
+          orderBy: { slot: "asc" },
+          select: {
+            id: true,
+            slot: true,
+            status: true,
+            teamOneScore: true,
+            teamTwoScore: true,
+            teamOne: {
+              select: {
+                id: true,
+                name: true,
+              },
             },
-          },
-          teamTwo: {
-            select: {
-              id: true,
-              name: true,
+            teamTwo: {
+              select: {
+                id: true,
+                name: true,
+              },
             },
           },
         },
       },
-    },
-  })
+    }),
+    prisma.team.findMany({
+      where: { tournamentId },
+      select: { id: true, name: true },
+    }),
+  ])
 
   return fechas.map((fecha) => ({
     id: fecha.id,
@@ -99,6 +109,11 @@ export async function getTournamentFechas(tournamentId: string): Promise<Fixture
         name: match.teamTwo.name,
       },
     })),
+    restingTeams: teams.filter(
+      (team) => !fecha.matches.some(
+        (match) => match.teamOne.id === team.id || match.teamTwo.id === team.id
+      )
+    ),
   }))
 }
 
@@ -147,6 +162,8 @@ export async function generateFecha(tournamentId: string) {
       teamOne: { id: string; name: string }
       teamTwo: { id: string; name: string }
     }>
+
+    const restingTeams = shuffledTeams.length % 2 === 0 ? [] : [shuffledTeams[shuffledTeams.length - 1]]
 
     for (let index = 0; index < shuffledTeams.length - 1; index += 2) {
       const teamOne = shuffledTeams[index]
@@ -200,6 +217,7 @@ export async function generateFecha(tournamentId: string) {
       date: fecha.date ? fecha.date.toISOString().slice(0, 10) : null,
       status: "OPEN" as const,
       matches: createdMatches,
+      restingTeams,
     }
   })
 

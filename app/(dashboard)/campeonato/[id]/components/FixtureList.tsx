@@ -230,6 +230,13 @@ export function FixtureList({ tournamentId, initialFechas }: FixtureListProps) {
                     ))}
                 </div>
 
+                {(fecha.restingTeams ?? []).length > 0 ? (
+                  <div className="mt-4 border-t pt-3 text-sm text-muted-foreground">
+                    <span className="font-medium text-foreground">Descansa esta fecha: </span>
+                    {(fecha.restingTeams ?? []).map((team) => formatTeamName(team.name)).join(", ")}
+                  </div>
+                ) : null}
+
                 <div className="mt-4 border-t pt-3">
                   <Button
                     type="button"
