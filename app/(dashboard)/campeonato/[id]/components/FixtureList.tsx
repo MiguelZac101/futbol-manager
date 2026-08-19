@@ -28,7 +28,11 @@ export function FixtureList({ tournamentId, initialFechas }: FixtureListProps) {
     setIsGenerating(false)
 
     if (result?.error) {
-      setError(result.error)
+      if ("requiresClose" in result && result.requiresClose) {
+        window.alert(result.error)
+      } else {
+        setError(result.error)
+      }
       return
     }
 

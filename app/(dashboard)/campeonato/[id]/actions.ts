@@ -197,6 +197,7 @@ export async function generateFecha(tournamentId: string) {
   if (openFecha) {
     return {
       error: `No se puede generar la fecha siguiente hasta cerrar la fecha ${openFecha.number}.`,
+      requiresClose: true,
     }
   }
 
