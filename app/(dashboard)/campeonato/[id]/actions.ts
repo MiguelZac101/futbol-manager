@@ -371,7 +371,7 @@ export async function generateFecha(tournamentId: string) {
       const match = await tx.match.create({
         data: {
           fechaId: fecha.id,
-          slot: index / 2 + 1,
+          slot: index + 1,
           teamOneId: teamOne.id,
           teamTwoId: teamTwo.id,
           status: "SCHEDULED",
