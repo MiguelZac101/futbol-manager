@@ -118,6 +118,13 @@ export function FixtureList({ tournamentId, initialFechas }: FixtureListProps) {
   }
 
   async function handleCloseFecha(fechaId: string) {
+    const fecha = fechas.find((item) => item.id === fechaId)
+
+    if (!fecha?.date) {
+      window.alert("Seleccioná un día para la fecha antes de cerrarla.")
+      return
+    }
+
     const confirmed = window.confirm(
       "¿Seguro que querés cerrar esta fecha? La fecha será de solo lectura y se guardarán los datos registrados hasta este momento."
     )

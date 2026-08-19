@@ -442,6 +442,19 @@ export async function closeFecha(fechaId: string) {
     return { error: "La fecha es inválida." }
   }
 
+  const currentFecha = await prisma.fecha.findUnique({
+    where: { id: fechaId },
+    select: { date: true },
+  })
+
+  if (!currentFecha) {
+    return { error: "La fecha no existe." }
+  }
+
+  if (!currentFecha.date) {
+    return { error: "Seleccioná un día para la fecha antes de cerrarla." }
+  }
+
   const fecha = await prisma.fecha.update({
     where: { id: fechaId },
     data: { status: "CLOSED" },
