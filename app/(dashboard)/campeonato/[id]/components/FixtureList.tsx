@@ -75,8 +75,10 @@ export function FixtureList({ tournamentId, initialFechas, teamCount }: FixtureL
   const [fechas, setFechas] = useState(initialFechas)
   const [isGenerating, setIsGenerating] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [highlightedFechaId, setHighlightedFechaId] = useState<string | null>(null)
   const [highlightedMatchId, setHighlightedMatchId] = useState<string | null>(null)
   const highlightTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const fechaHighlightTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const scheduleUpdateTimeoutsRef = useRef<Record<string, ReturnType<typeof setTimeout> | null>>({})
   const maximumFechaCount = teamCount % 2 === 0 ? teamCount - 1 : teamCount
   const canGenerateFecha = teamCount >= 2 && fechas.length < maximumFechaCount
@@ -85,6 +87,10 @@ export function FixtureList({ tournamentId, initialFechas, teamCount }: FixtureL
     return () => {
       if (highlightTimeoutRef.current) {
         clearTimeout(highlightTimeoutRef.current)
+      }
+
+      if (fechaHighlightTimeoutRef.current) {
+        clearTimeout(fechaHighlightTimeoutRef.current)
       }
 
       Object.values(scheduleUpdateTimeoutsRef.current).forEach((timeout) => {
@@ -107,6 +113,18 @@ export function FixtureList({ tournamentId, initialFechas, teamCount }: FixtureL
     }, 1500)
   }
 
+  function flashCreatedFecha(fechaId: string) {
+    if (fechaHighlightTimeoutRef.current) {
+      clearTimeout(fechaHighlightTimeoutRef.current)
+    }
+
+    setHighlightedFechaId(fechaId)
+    fechaHighlightTimeoutRef.current = setTimeout(() => {
+      setHighlightedFechaId(null)
+      fechaHighlightTimeoutRef.current = null
+    }, 1500)
+  }
+
   async function handleGenerateFecha() {
     setError(null)
     setIsGenerating(true)
@@ -126,6 +144,7 @@ export function FixtureList({ tournamentId, initialFechas, teamCount }: FixtureL
 
     if (result?.fecha) {
       setFechas((current) => [...current, result.fecha])
+      flashCreatedFecha(result.fecha.id)
     }
   }
 
@@ -316,7 +335,14 @@ export function FixtureList({ tournamentId, initialFechas, teamCount }: FixtureL
             .slice()
             .sort((a, b) => a.number - b.number)
             .map((fecha) => (
-              <div key={fecha.id} className="rounded-xl border bg-muted/20 p-4">
+              <div
+                key={fecha.id}
+                className={`rounded-xl border bg-muted/20 p-4 transition-all duration-500 ${
+                  highlightedFechaId === fecha.id
+                    ? "border-amber-400 bg-amber-400/15 shadow-[0_0_0_2px_rgba(251,191,36,0.45),0_0_24px_rgba(251,191,36,0.25)]"
+                    : ""
+                }`}
+              >
                 <div className="mb-4 flex items-center justify-between gap-3 border-b pb-3">
                   <div>
                     <p className="text-[10px] uppercase tracking-[0.2em] text-muted-foreground">
