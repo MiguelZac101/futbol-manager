@@ -77,6 +77,7 @@ export function FixtureList({ tournamentId, initialFechas, teamCount }: FixtureL
   const [error, setError] = useState<string | null>(null)
   const [highlightedMatchId, setHighlightedMatchId] = useState<string | null>(null)
   const highlightTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const scheduleUpdateTimeoutsRef = useRef<Record<string, ReturnType<typeof setTimeout> | null>>({})
   const maximumFechaCount = teamCount % 2 === 0 ? teamCount - 1 : teamCount
   const canGenerateFecha = teamCount >= 2 && fechas.length < maximumFechaCount
 
@@ -85,6 +86,12 @@ export function FixtureList({ tournamentId, initialFechas, teamCount }: FixtureL
       if (highlightTimeoutRef.current) {
         clearTimeout(highlightTimeoutRef.current)
       }
+
+      Object.values(scheduleUpdateTimeoutsRef.current).forEach((timeout) => {
+        if (timeout) {
+          clearTimeout(timeout)
+        }
+      })
     }
   }, [])
 
@@ -173,23 +180,44 @@ export function FixtureList({ tournamentId, initialFechas, teamCount }: FixtureL
   }
 
   async function handleMatchScheduledTimeChange(matchId: string, time: string) {
-    const response = await updateMatchScheduledTime(matchId, time)
-
-    if (response?.error) {
-      setError(response.error)
-      return
+    if (scheduleUpdateTimeoutsRef.current[matchId]) {
+      clearTimeout(scheduleUpdateTimeoutsRef.current[matchId] as ReturnType<typeof setTimeout>)
     }
 
-    if (response?.fecha) {
-      setFechas((current) =>
-        current.map((fecha) =>
-          fecha.matches.some((match) => match.id === matchId)
-            ? response.fecha
-            : fecha
+    scheduleUpdateTimeoutsRef.current[matchId] = setTimeout(async () => {
+      scheduleUpdateTimeoutsRef.current[matchId] = null
+
+      const response = await updateMatchScheduledTime(matchId, time)
+
+      if (response?.error) {
+        setError(response.error)
+        return
+      }
+
+      if (response?.match) {
+        setFechas((current) =>
+          current.map((fecha) =>
+            fecha.matches.some((match) => match.id === matchId)
+              ? {
+                  ...fecha,
+                  matches: sortMatchesBySchedule(
+                    fecha.matches.map((match) =>
+                      match.id === matchId
+                        ? {
+                            ...match,
+                            scheduledAt: response.match.scheduledAt,
+                            slot: response.match.slot,
+                          }
+                        : match
+                    )
+                  ),
+                }
+              : fecha
+          )
         )
-      )
-      flashMovedMatch(matchId)
-    }
+        flashMovedMatch(matchId)
+      }
+    }, 450)
   }
 
   async function handleFechaDateChange(fechaId: string, date: string) {

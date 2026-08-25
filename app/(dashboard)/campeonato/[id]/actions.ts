@@ -597,7 +597,6 @@ export async function updateMatchScheduledTime(matchId: string, time: string) {
         select: {
           date: true,
           status: true,
-          tournamentId: true,
         },
       },
     },
@@ -621,7 +620,7 @@ export async function updateMatchScheduledTime(matchId: string, time: string) {
     return { error: "La hora ingresada no es válida." }
   }
 
-  const fecha = await prisma.$transaction(async (tx) => {
+  const updatedMatch = await prisma.$transaction(async (tx) => {
     await tx.match.update({
       where: { id: matchId },
       data: { scheduledAt },
@@ -676,87 +675,26 @@ export async function updateMatchScheduledTime(matchId: string, time: string) {
       })
     }
 
-    const teams = await tx.team.findMany({
-      where: { tournamentId: currentMatch.fecha.tournamentId },
-      select: { id: true, name: true },
-    })
-
-    return tx.fecha.findUnique({
-      where: { id: currentMatch.fechaId },
+    return tx.match.findUnique({
+      where: { id: matchId },
       select: {
         id: true,
-        number: true,
-        date: true,
-        status: true,
-        matches: {
-          orderBy: { slot: "asc" },
-          select: {
-            id: true,
-            slot: true,
-            scheduledAt: true,
-            status: true,
-            teamOneScore: true,
-            teamTwoScore: true,
-            teamOneId: true,
-            teamTwoId: true,
-            teamOne: {
-              select: {
-                id: true,
-                name: true,
-              },
-            },
-            teamTwo: {
-              select: {
-                id: true,
-                name: true,
-              },
-            },
-          },
-        },
+        slot: true,
+        scheduledAt: true,
       },
-    }).then((updatedFecha) =>
-      updatedFecha
-        ? {
-            ...updatedFecha,
-            restingTeams: teams.filter(
-              (team) =>
-                !updatedFecha.matches.some(
-                  (match) => match.teamOneId === team.id || match.teamTwoId === team.id
-                )
-            ),
-          }
-        : null
-    )
+    })
   })
 
-  if (!fecha) {
-    return { error: "La fecha no existe." }
+  if (!updatedMatch) {
+    return { error: "El partido no existe." }
   }
 
   return {
     success: true,
-    fecha: {
-      id: fecha.id,
-      number: fecha.number,
-      date: fecha.date ? fecha.date.toISOString().slice(0, 10) : null,
-      status: fecha.status,
-      matches: fecha.matches.map((match) => ({
-        id: match.id,
-        slot: match.slot,
-        scheduledAt: match.scheduledAt?.toISOString() ?? null,
-        status: match.status,
-        teamOneScore: match.teamOneScore,
-        teamTwoScore: match.teamTwoScore,
-        teamOne: {
-          id: match.teamOne.id,
-          name: match.teamOne.name,
-        },
-        teamTwo: {
-          id: match.teamTwo.id,
-          name: match.teamTwo.name,
-        },
-      })),
-      restingTeams: fecha.restingTeams,
+    match: {
+      id: updatedMatch.id,
+      slot: updatedMatch.slot,
+      scheduledAt: updatedMatch.scheduledAt?.toISOString() ?? null,
     },
   }
 }
