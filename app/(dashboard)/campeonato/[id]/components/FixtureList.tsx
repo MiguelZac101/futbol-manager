@@ -55,6 +55,22 @@ function getMatchTimeInputValue(scheduledAt: string | null) {
   return `${hours}:${minutes}`
 }
 
+function getMatchSortTimestamp(scheduledAt: string | null) {
+  return scheduledAt ? new Date(scheduledAt).getTime() : Number.POSITIVE_INFINITY
+}
+
+function sortMatchesBySchedule<T extends { scheduledAt: string | null; slot: number }>(matches: T[]) {
+  return matches.slice().sort((a, b) => {
+    const timeDiff = getMatchSortTimestamp(a.scheduledAt) - getMatchSortTimestamp(b.scheduledAt)
+
+    if (timeDiff !== 0) {
+      return timeDiff
+    }
+
+    return a.slot - b.slot
+  })
+}
+
 export function FixtureList({ tournamentId, initialFechas, teamCount }: FixtureListProps) {
   const [fechas, setFechas] = useState(initialFechas)
   const [isGenerating, setIsGenerating] = useState(false)
@@ -142,16 +158,13 @@ export function FixtureList({ tournamentId, initialFechas, teamCount }: FixtureL
       return
     }
 
-    if (response?.match) {
+    if (response?.fecha) {
       setFechas((current) =>
-        current.map((fecha) => ({
-          ...fecha,
-          matches: fecha.matches.map((match) =>
-            match.id === matchId
-              ? { ...match, scheduledAt: response.match.scheduledAt }
-              : match
-          ),
-        }))
+        current.map((fecha) =>
+          fecha.matches.some((match) => match.id === matchId)
+            ? response.fecha
+            : fecha
+        )
       )
     }
   }
@@ -166,14 +179,7 @@ export function FixtureList({ tournamentId, initialFechas, teamCount }: FixtureL
 
     if (response?.fecha) {
       setFechas((current) =>
-        current.map((fecha) =>
-          fecha.id === fechaId
-            ? {
-                ...fecha,
-                date: response.fecha.date,
-              }
-            : fecha
-        )
+        current.map((fecha) => (fecha.id === fechaId ? response.fecha : fecha))
       )
     }
   }
@@ -288,9 +294,7 @@ export function FixtureList({ tournamentId, initialFechas, teamCount }: FixtureL
                 </div>
 
                 <div className="space-y-3">
-                  {fecha.matches
-                    .slice()
-                    .sort((a, b) => a.slot - b.slot)
+                  {sortMatchesBySchedule(fecha.matches)
                     .map((match) => (
                       <div
                         key={match.id}

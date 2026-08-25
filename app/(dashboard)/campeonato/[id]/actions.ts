@@ -252,6 +252,8 @@ export async function getTournamentFechas(tournamentId: string): Promise<Fixture
             status: true,
             teamOneScore: true,
             teamTwoScore: true,
+            teamOneId: true,
+            teamTwoId: true,
             teamOne: {
               select: {
                 id: true,
@@ -564,7 +566,6 @@ export async function updateMatchResult(
     },
   })
 
-  revalidatePath(`/campeonato`)
   return {
     success: true,
     match: {
@@ -591,7 +592,14 @@ export async function updateMatchScheduledTime(matchId: string, time: string) {
   const currentMatch = await prisma.match.findUnique({
     where: { id: matchId },
     select: {
-      fecha: { select: { date: true, status: true } },
+      fechaId: true,
+      fecha: {
+        select: {
+          date: true,
+          status: true,
+          tournamentId: true,
+        },
+      },
     },
   })
 
@@ -612,18 +620,143 @@ export async function updateMatchScheduledTime(matchId: string, time: string) {
   if (!scheduledAt) {
     return { error: "La hora ingresada no es válida." }
   }
-  const match = await prisma.match.update({
-    where: { id: matchId },
-    data: { scheduledAt },
-    select: { id: true, scheduledAt: true },
+
+  const fecha = await prisma.$transaction(async (tx) => {
+    await tx.match.update({
+      where: { id: matchId },
+      data: { scheduledAt },
+      select: { id: true },
+    })
+
+    const matches = await tx.match.findMany({
+      where: { fechaId: currentMatch.fechaId },
+      select: {
+        id: true,
+        slot: true,
+        scheduledAt: true,
+        status: true,
+        teamOneScore: true,
+        teamTwoScore: true,
+        teamOne: {
+          select: { id: true, name: true },
+        },
+        teamTwo: {
+          select: { id: true, name: true },
+        },
+      },
+    })
+
+    const orderedMatches = matches
+      .slice()
+      .sort((a, b) => {
+        const firstTime = a.scheduledAt ? a.scheduledAt.getTime() : Number.POSITIVE_INFINITY
+        const secondTime = b.scheduledAt ? b.scheduledAt.getTime() : Number.POSITIVE_INFINITY
+
+        if (firstTime !== secondTime) {
+          return firstTime - secondTime
+        }
+
+        return a.slot - b.slot
+      })
+
+    for (const match of matches) {
+      await tx.match.update({
+        where: { id: match.id },
+        data: { slot: match.slot + 1000 },
+        select: { id: true },
+      })
+    }
+
+    for (let index = 0; index < orderedMatches.length; index += 1) {
+      const match = orderedMatches[index]
+      await tx.match.update({
+        where: { id: match.id },
+        data: { slot: index + 1 },
+        select: { id: true },
+      })
+    }
+
+    const teams = await tx.team.findMany({
+      where: { tournamentId: currentMatch.fecha.tournamentId },
+      select: { id: true, name: true },
+    })
+
+    return tx.fecha.findUnique({
+      where: { id: currentMatch.fechaId },
+      select: {
+        id: true,
+        number: true,
+        date: true,
+        status: true,
+        matches: {
+          orderBy: { slot: "asc" },
+          select: {
+            id: true,
+            slot: true,
+            scheduledAt: true,
+            status: true,
+            teamOneScore: true,
+            teamTwoScore: true,
+            teamOneId: true,
+            teamTwoId: true,
+            teamOne: {
+              select: {
+                id: true,
+                name: true,
+              },
+            },
+            teamTwo: {
+              select: {
+                id: true,
+                name: true,
+              },
+            },
+          },
+        },
+      },
+    }).then((updatedFecha) =>
+      updatedFecha
+        ? {
+            ...updatedFecha,
+            restingTeams: teams.filter(
+              (team) =>
+                !updatedFecha.matches.some(
+                  (match) => match.teamOneId === team.id || match.teamTwoId === team.id
+                )
+            ),
+          }
+        : null
+    )
   })
 
-  revalidatePath(`/campeonato`)
+  if (!fecha) {
+    return { error: "La fecha no existe." }
+  }
+
   return {
     success: true,
-    match: {
-      id: match.id,
-      scheduledAt: match.scheduledAt?.toISOString() ?? null,
+    fecha: {
+      id: fecha.id,
+      number: fecha.number,
+      date: fecha.date ? fecha.date.toISOString().slice(0, 10) : null,
+      status: fecha.status,
+      matches: fecha.matches.map((match) => ({
+        id: match.id,
+        slot: match.slot,
+        scheduledAt: match.scheduledAt?.toISOString() ?? null,
+        status: match.status,
+        teamOneScore: match.teamOneScore,
+        teamTwoScore: match.teamTwoScore,
+        teamOne: {
+          id: match.teamOne.id,
+          name: match.teamOne.name,
+        },
+        teamTwo: {
+          id: match.teamTwo.id,
+          name: match.teamTwo.name,
+        },
+      })),
+      restingTeams: fecha.restingTeams,
     },
   }
 }
