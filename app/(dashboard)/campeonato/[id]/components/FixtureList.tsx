@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useEffect, useRef, useState } from "react"
 import { CalendarDays, Clock3, LockKeyhole, Trash2 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import {
@@ -75,8 +75,30 @@ export function FixtureList({ tournamentId, initialFechas, teamCount }: FixtureL
   const [fechas, setFechas] = useState(initialFechas)
   const [isGenerating, setIsGenerating] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [highlightedMatchId, setHighlightedMatchId] = useState<string | null>(null)
+  const highlightTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const maximumFechaCount = teamCount % 2 === 0 ? teamCount - 1 : teamCount
   const canGenerateFecha = teamCount >= 2 && fechas.length < maximumFechaCount
+
+  useEffect(() => {
+    return () => {
+      if (highlightTimeoutRef.current) {
+        clearTimeout(highlightTimeoutRef.current)
+      }
+    }
+  }, [])
+
+  function flashMovedMatch(matchId: string) {
+    if (highlightTimeoutRef.current) {
+      clearTimeout(highlightTimeoutRef.current)
+    }
+
+    setHighlightedMatchId(matchId)
+    highlightTimeoutRef.current = setTimeout(() => {
+      setHighlightedMatchId(null)
+      highlightTimeoutRef.current = null
+    }, 1500)
+  }
 
   async function handleGenerateFecha() {
     setError(null)
@@ -166,6 +188,7 @@ export function FixtureList({ tournamentId, initialFechas, teamCount }: FixtureL
             : fecha
         )
       )
+      flashMovedMatch(matchId)
     }
   }
 
@@ -303,10 +326,14 @@ export function FixtureList({ tournamentId, initialFechas, teamCount }: FixtureL
                             handleMatchStatusToggle(match.id)
                           }
                         }}
-                        className={`flex flex-col gap-3 rounded-lg border p-3 transition-colors ${
+                        className={`flex flex-col gap-3 rounded-lg border p-3 transition-all duration-500 ${
                           match.status === "IN_PROGRESS"
                             ? "cursor-pointer border-emerald-500/60 bg-emerald-500/15"
                             : "cursor-pointer bg-background"
+                        } ${
+                          highlightedMatchId === match.id
+                            ? "border-amber-400 bg-amber-400/15 shadow-[0_0_0_2px_rgba(251,191,36,0.45),0_0_24px_rgba(251,191,36,0.25)]"
+                            : ""
                         }`}
                       >
                         <div className="flex items-center justify-between gap-2 border-b pb-2 text-xs text-muted-foreground">
