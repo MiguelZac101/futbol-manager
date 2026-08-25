@@ -4,6 +4,28 @@ import { revalidatePath } from "next/cache"
 import { z } from "zod"
 import { prisma } from "@/lib/prisma"
 
+function getLocalDateString(date: Date) {
+  const year = date.getFullYear()
+  const month = String(date.getMonth() + 1).padStart(2, "0")
+  const day = String(date.getDate()).padStart(2, "0")
+  return `${year}-${month}-${day}`
+}
+
+function buildLocalDateTime(date: string, time: string) {
+  const dateParts = date.split("-").map(Number)
+  const timeParts = /^([01]\d|2[0-3]):([0-5]\d)$/.exec(time)
+
+  if (dateParts.length !== 3 || dateParts.some((part) => Number.isNaN(part)) || !timeParts) {
+    return null
+  }
+
+  const [year, month, day] = dateParts
+  const hours = Number(timeParts[1])
+  const minutes = Number(timeParts[2])
+
+  return new Date(year, month - 1, day, hours, minutes, 0, 0)
+}
+
 const teamSchema = z.object({
   name: z.string().trim().min(2, "El nombre del equipo debe tener al menos 2 caracteres"),
   imageUrl: z.string().url("La imagen debe ser una URL válida").nullable().optional(),
@@ -346,17 +368,20 @@ export async function generateFecha(tournamentId: string) {
   })
 
   const nextNumber = (lastFecha?.number ?? 0) + 1
-  const fixtureDate = new Date()
-  const firstMatchTime = new Date(
-    `${fixtureDate.toISOString().slice(0, 10)}T${tournament.fixtureStartTime}:00`
-  )
+  const fixtureStartTime = tournament.fixtureStartTime
+  const fixtureDate = getLocalDateString(new Date())
+  const firstMatchTime = buildLocalDateTime(fixtureDate, fixtureStartTime)
+
+  if (!firstMatchTime) {
+    return { error: "La hora de inicio del fixture no es válida." }
+  }
 
   const createdFecha = await prisma.$transaction(async (tx) => {
     const fecha = await tx.fecha.create({
       data: {
         tournamentId,
         number: nextNumber,
-        date: new Date(),
+        date: buildLocalDateTime(getLocalDateString(new Date()), "12:00")!,
         generationMethod: "RANDOM",
       },
       select: {
@@ -583,7 +608,10 @@ export async function updateMatchScheduledTime(matchId: string, time: string) {
     return { error: "Seleccioná un día para la fecha antes de asignar horarios." }
   }
 
-  const scheduledAt = new Date(`${date}T${time}:00`)
+  const scheduledAt = buildLocalDateTime(date, time)
+  if (!scheduledAt) {
+    return { error: "La hora ingresada no es válida." }
+  }
   const match = await prisma.match.update({
     where: { id: matchId },
     data: { scheduledAt },
@@ -654,11 +682,7 @@ export async function updateFechaDate(fechaId: string, date: string) {
     return { error: "La fecha está cerrada y es de solo lectura." }
   }
 
-  const parsedDate = new Date(`${date}T12:00:00`)
-
-  if (Number.isNaN(parsedDate.getTime())) {
-    return { error: "La fecha ingresada no es válida." }
-  }
+  const parsedDate = buildLocalDateTime(date, "12:00")!
 
   const fecha = await prisma.$transaction(async (tx) => {
     const matches = await tx.match.findMany({
@@ -667,10 +691,13 @@ export async function updateFechaDate(fechaId: string, date: string) {
     })
 
     for (const match of matches) {
-      const scheduledTime = match.scheduledAt!.toISOString().slice(11, 19)
+      const scheduledTime = [
+        String(match.scheduledAt!.getHours()).padStart(2, "0"),
+        String(match.scheduledAt!.getMinutes()).padStart(2, "0"),
+      ].join(":")
       await tx.match.update({
         where: { id: match.id },
-        data: { scheduledAt: new Date(`${date}T${scheduledTime}`) },
+        data: { scheduledAt: buildLocalDateTime(date, scheduledTime)! },
       })
     }
 
@@ -863,4 +890,3 @@ export async function deleteTeam(teamId: string) {
   revalidatePath("/campeonato")
   return { success: true }
 }
-

@@ -34,13 +34,25 @@ function formatClosedFechaDate(date: string | null) {
 }
 
 function formatMatchTime(scheduledAt: string | null) {
-  return scheduledAt
-    ? new Date(scheduledAt).toISOString().slice(11, 16)
-    : "Sin horario"
+  if (!scheduledAt) {
+    return "Sin horario"
+  }
+
+  const date = new Date(scheduledAt)
+  const hours = String(date.getHours()).padStart(2, "0")
+  const minutes = String(date.getMinutes()).padStart(2, "0")
+  return `${hours}:${minutes}`
 }
 
 function getMatchTimeInputValue(scheduledAt: string | null) {
-  return scheduledAt ? new Date(scheduledAt).toISOString().slice(11, 16) : ""
+  if (!scheduledAt) {
+    return ""
+  }
+
+  const date = new Date(scheduledAt)
+  const hours = String(date.getHours()).padStart(2, "0")
+  const minutes = String(date.getMinutes()).padStart(2, "0")
+  return `${hours}:${minutes}`
 }
 
 export function FixtureList({ tournamentId, initialFechas, teamCount }: FixtureListProps) {
