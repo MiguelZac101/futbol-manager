@@ -1,7 +1,7 @@
 "use client"
 
 import { useEffect, useRef, useState } from "react"
-import { CalendarDays, Clock3, LockKeyhole, Trash2 } from "lucide-react"
+import { CalendarDays, Clock3, Loader2, LockKeyhole, Trash2 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import {
   closeFecha,
@@ -292,7 +292,14 @@ export function FixtureList({ tournamentId, initialFechas, teamCount }: FixtureL
 
         {canGenerateFecha ? (
           <Button type="button" onClick={handleGenerateFecha} disabled={isGenerating}>
-            {isGenerating ? "Generando..." : "Generar fecha"}
+            {isGenerating ? (
+              <>
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                Generando...
+              </>
+            ) : (
+              "Generar fecha"
+            )}
           </Button>
         ) : null}
       </div>
