@@ -8,9 +8,8 @@ import {
   deleteFecha,
   generateFecha,
   toggleMatchStatus,
-  updateMatchScheduledTime,
+  updateMatchDetails,
   updateFechaDate,
-  updateMatchResult,
   type FixtureDate,
 } from "../actions"
 
@@ -18,6 +17,16 @@ interface FixtureListProps {
   tournamentId: string
   initialFechas: FixtureDate[]
   teamCount: number
+}
+
+type FixtureMatch = FixtureDate["matches"][number]
+
+type MatchDraft = {
+  hour: string
+  minute: string
+  period: "AM" | "PM"
+  teamOneScore: string
+  teamTwoScore: string
 }
 
 function formatTeamName(name: string) {
@@ -39,20 +48,41 @@ function formatMatchTime(scheduledAt: string | null) {
   }
 
   const date = new Date(scheduledAt)
-  const hours = String(date.getHours()).padStart(2, "0")
+  const hours24 = date.getHours()
   const minutes = String(date.getMinutes()).padStart(2, "0")
-  return `${hours}:${minutes}`
+  const period = hours24 >= 12 ? "PM" : "AM"
+  const hours12 = hours24 % 12 || 12
+  return `${String(hours12).padStart(2, "0")}:${minutes} ${period}`
 }
 
-function getMatchTimeInputValue(scheduledAt: string | null) {
+function getMatchPeriod(scheduledAt: string | null): "AM" | "PM" {
   if (!scheduledAt) {
-    return ""
+    return "AM"
   }
 
-  const date = new Date(scheduledAt)
-  const hours = String(date.getHours()).padStart(2, "0")
-  const minutes = String(date.getMinutes()).padStart(2, "0")
-  return `${hours}:${minutes}`
+  return new Date(scheduledAt).getHours() >= 12 ? "PM" : "AM"
+}
+
+function to24HourTime(hour: string, minute: string, period: "AM" | "PM") {
+  const normalizedHour = Number(hour)
+  const normalizedMinute = Number(minute)
+
+  if (
+    Number.isNaN(normalizedHour) ||
+    Number.isNaN(normalizedMinute) ||
+    normalizedHour < 1 ||
+    normalizedHour > 12 ||
+    normalizedMinute < 0 ||
+    normalizedMinute > 59
+  ) {
+    return null
+  }
+
+  const isPm = period === "PM"
+  const hour24 =
+    normalizedHour === 12 ? (isPm ? 12 : 0) : isPm ? normalizedHour + 12 : normalizedHour
+
+  return `${String(hour24).padStart(2, "0")}:${String(normalizedMinute).padStart(2, "0")}`
 }
 
 function getMatchSortTimestamp(scheduledAt: string | null) {
@@ -71,15 +101,31 @@ function sortMatchesBySchedule<T extends { scheduledAt: string | null; slot: num
   })
 }
 
+function createMatchDraft(match: FixtureMatch): MatchDraft {
+  const date = match.scheduledAt ? new Date(match.scheduledAt) : null
+  const hour = date ? String(date.getHours() % 12 || 12).padStart(2, "0") : "12"
+  const minute = date ? String(date.getMinutes()).padStart(2, "0") : "00"
+
+  return {
+    hour,
+    minute,
+    period: getMatchPeriod(match.scheduledAt),
+    teamOneScore: String(match.teamOneScore ?? 0),
+    teamTwoScore: String(match.teamTwoScore ?? 0),
+  }
+}
+
 export function FixtureList({ tournamentId, initialFechas, teamCount }: FixtureListProps) {
   const [fechas, setFechas] = useState(initialFechas)
   const [isGenerating, setIsGenerating] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [highlightedFechaId, setHighlightedFechaId] = useState<string | null>(null)
   const [highlightedMatchId, setHighlightedMatchId] = useState<string | null>(null)
+  const [editingMatchId, setEditingMatchId] = useState<string | null>(null)
+  const [matchDrafts, setMatchDrafts] = useState<Record<string, MatchDraft>>({})
+  const [savingMatchId, setSavingMatchId] = useState<string | null>(null)
   const highlightTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const fechaHighlightTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null)
-  const scheduleUpdateTimeoutsRef = useRef<Record<string, ReturnType<typeof setTimeout> | null>>({})
   const maximumFechaCount = teamCount % 2 === 0 ? teamCount - 1 : teamCount
   const canGenerateFecha = teamCount >= 2 && fechas.length < maximumFechaCount
 
@@ -92,12 +138,6 @@ export function FixtureList({ tournamentId, initialFechas, teamCount }: FixtureL
       if (fechaHighlightTimeoutRef.current) {
         clearTimeout(fechaHighlightTimeoutRef.current)
       }
-
-      Object.values(scheduleUpdateTimeoutsRef.current).forEach((timeout) => {
-        if (timeout) {
-          clearTimeout(timeout)
-        }
-      })
     }
   }, [])
 
@@ -125,6 +165,91 @@ export function FixtureList({ tournamentId, initialFechas, teamCount }: FixtureL
     }, 1500)
   }
 
+  function getFechaForMatch(matchId: string) {
+    return fechas.find((fecha) => fecha.matches.some((match) => match.id === matchId))
+  }
+
+  async function saveMatchDraft(matchId: string) {
+    const fecha = getFechaForMatch(matchId)
+    if (!fecha) {
+      return
+    }
+
+    const match = fecha.matches.find((item) => item.id === matchId)
+    if (!match) {
+      return
+    }
+
+    const draft = matchDrafts[matchId] ?? createMatchDraft(match)
+    const scheduledAt = to24HourTime(draft.hour, draft.minute, draft.period)
+
+    if (!scheduledAt) {
+      setError("Ingresá una hora válida.")
+      return
+    }
+
+    setSavingMatchId(matchId)
+    setError(null)
+
+    const response = await updateMatchDetails(matchId, {
+      scheduledAt,
+      teamOneScore: draft.teamOneScore,
+      teamTwoScore: draft.teamTwoScore,
+    })
+
+    setSavingMatchId(null)
+
+    if (response?.error) {
+      setError(response.error)
+      return
+    }
+
+    if (response?.fecha) {
+      setFechas((current) =>
+        current.map((item) => (item.id === response.fecha.id ? response.fecha : item))
+      )
+      setEditingMatchId(null)
+      setHighlightedMatchId(matchId)
+      flashMovedMatch(matchId)
+      setMatchDrafts((current) => {
+        const nextDrafts = { ...current }
+        delete nextDrafts[matchId]
+        return nextDrafts
+      })
+    }
+  }
+
+  async function handleMatchCardClick(matchId: string) {
+    if (savingMatchId) {
+      return
+    }
+
+    const fecha = getFechaForMatch(matchId)
+    if (fecha?.status === "CLOSED") {
+      return
+    }
+
+    if (editingMatchId === matchId) {
+      await saveMatchDraft(matchId)
+      return
+    }
+
+    if (editingMatchId && editingMatchId !== matchId) {
+      await saveMatchDraft(editingMatchId)
+      return
+    }
+
+    const match = fecha?.matches.find((item) => item.id === matchId)
+    if (!match) {
+      return
+    }
+
+    setMatchDrafts((current) =>
+      current[matchId] ? current : { ...current, [matchId]: createMatchDraft(match) }
+    )
+    setEditingMatchId(matchId)
+  }
+
   async function handleGenerateFecha() {
     setError(null)
     setIsGenerating(true)
@@ -148,34 +273,6 @@ export function FixtureList({ tournamentId, initialFechas, teamCount }: FixtureL
     }
   }
 
-  async function handleMatchChange(matchId: string, result: { teamOneScore: number; teamTwoScore: number }) {
-    const response = await updateMatchResult(matchId, result)
-
-    if (response?.error) {
-      setError(response.error)
-      return
-    }
-
-    if (response?.match) {
-      setFechas((current) =>
-        current.map((fecha) => ({
-          ...fecha,
-          matches: fecha.matches.map((match) =>
-            match.id === matchId
-              ? {
-                  ...match,
-                  ...response.match,
-                  status: response.match.status,
-                  teamOneScore: response.match.teamOneScore,
-                  teamTwoScore: response.match.teamTwoScore,
-                }
-              : match
-          ),
-        }))
-      )
-    }
-  }
-
   async function handleMatchStatusToggle(matchId: string) {
     const response = await toggleMatchStatus(matchId)
 
@@ -196,47 +293,6 @@ export function FixtureList({ tournamentId, initialFechas, teamCount }: FixtureL
         }))
       )
     }
-  }
-
-  async function handleMatchScheduledTimeChange(matchId: string, time: string) {
-    if (scheduleUpdateTimeoutsRef.current[matchId]) {
-      clearTimeout(scheduleUpdateTimeoutsRef.current[matchId] as ReturnType<typeof setTimeout>)
-    }
-
-    scheduleUpdateTimeoutsRef.current[matchId] = setTimeout(async () => {
-      scheduleUpdateTimeoutsRef.current[matchId] = null
-
-      const response = await updateMatchScheduledTime(matchId, time)
-
-      if (response?.error) {
-        setError(response.error)
-        return
-      }
-
-      if (response?.match) {
-        setFechas((current) =>
-          current.map((fecha) =>
-            fecha.matches.some((match) => match.id === matchId)
-              ? {
-                  ...fecha,
-                  matches: sortMatchesBySchedule(
-                    fecha.matches.map((match) =>
-                      match.id === matchId
-                        ? {
-                            ...match,
-                            scheduledAt: response.match.scheduledAt,
-                            slot: response.match.slot,
-                          }
-                        : match
-                    )
-                  ),
-                }
-              : fecha
-          )
-        )
-        flashMovedMatch(matchId)
-      }
-    }, 450)
   }
 
   async function handleFechaDateChange(fechaId: string, date: string) {
@@ -378,17 +434,18 @@ export function FixtureList({ tournamentId, initialFechas, teamCount }: FixtureL
                 </div>
 
                 <div className="space-y-3">
-                  {sortMatchesBySchedule(fecha.matches)
-                    .map((match) => (
+                  {sortMatchesBySchedule(fecha.matches).map((match) => {
+                    const isEditing = editingMatchId === match.id
+                    const draft = matchDrafts[match.id] ?? createMatchDraft(match)
+
+                    return (
                       <div
                         key={match.id}
                         onClick={() => {
-                          if (fecha.status !== "CLOSED") {
-                            handleMatchStatusToggle(match.id)
-                          }
+                          void handleMatchCardClick(match.id)
                         }}
                         className={`flex flex-col gap-3 rounded-lg border p-3 transition-all duration-500 ${
-                          match.status === "IN_PROGRESS"
+                          isEditing
                             ? "cursor-pointer border-emerald-500/60 bg-emerald-500/15"
                             : "cursor-pointer bg-background"
                         } ${
@@ -406,17 +463,68 @@ export function FixtureList({ tournamentId, initialFechas, teamCount }: FixtureL
                             <span className="font-medium text-foreground">
                               {formatMatchTime(match.scheduledAt)}
                             </span>
-                          ) : (
-                            <input
-                              type="time"
-                              value={getMatchTimeInputValue(match.scheduledAt)}
+                          ) : isEditing ? (
+                            <div
+                              className="flex items-center gap-2"
                               onClick={(event) => event.stopPropagation()}
-                              onChange={(event) =>
-                                handleMatchScheduledTimeChange(match.id, event.target.value)
-                              }
-                              className="rounded-md border bg-background px-2 py-1 text-xs text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-                              aria-label={`Horario del partido entre ${match.teamOne.name} y ${match.teamTwo.name}`}
-                            />
+                            >
+                              <input
+                                type="number"
+                                min={1}
+                                max={12}
+                                value={draft.hour}
+                                onChange={(event) =>
+                                  setMatchDrafts((current) => ({
+                                    ...current,
+                                    [match.id]: {
+                                      ...draft,
+                                      hour: event.target.value,
+                                    },
+                                  }))
+                                }
+                                className="h-8 w-14 rounded-md border bg-background px-2 text-center text-xs text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                                aria-label={`Hora del partido entre ${match.teamOne.name} y ${match.teamTwo.name}`}
+                              />
+                              <span className="text-xs text-muted-foreground">:</span>
+                              <input
+                                type="number"
+                                min={0}
+                                max={59}
+                                value={draft.minute}
+                                onChange={(event) =>
+                                  setMatchDrafts((current) => ({
+                                    ...current,
+                                    [match.id]: {
+                                      ...draft,
+                                      minute: event.target.value,
+                                    },
+                                  }))
+                                }
+                                className="h-8 w-14 rounded-md border bg-background px-2 text-center text-xs text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                                aria-label={`Minutos del partido entre ${match.teamOne.name} y ${match.teamTwo.name}`}
+                              />
+                              <select
+                                value={draft.period}
+                                onChange={(event) =>
+                                  setMatchDrafts((current) => ({
+                                    ...current,
+                                    [match.id]: {
+                                      ...draft,
+                                      period: event.target.value as "AM" | "PM",
+                                    },
+                                  }))
+                                }
+                                className="h-8 rounded-md border bg-background px-2 text-xs text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                                aria-label={`Periodo del partido entre ${match.teamOne.name} y ${match.teamTwo.name}`}
+                              >
+                                <option value="AM">AM</option>
+                                <option value="PM">PM</option>
+                              </select>
+                            </div>
+                          ) : (
+                            <span className="font-medium text-foreground">
+                              {formatMatchTime(match.scheduledAt)}
+                            </span>
                           )}
                         </div>
 
@@ -431,24 +539,24 @@ export function FixtureList({ tournamentId, initialFechas, teamCount }: FixtureL
                               <span className="text-muted-foreground">:</span>
                               <span>{match.teamTwoScore ?? 0}</span>
                             </div>
-                          ) : match.status === "IN_PROGRESS" ? (
-                            <div className="flex items-center gap-2">
+                          ) : isEditing ? (
+                            <div
+                              className="flex items-center gap-2"
+                              onClick={(event) => event.stopPropagation()}
+                            >
                               <input
                                 type="number"
                                 min={0}
-                                defaultValue={match.teamOneScore ?? ""}
-                                onClick={(event) => event.stopPropagation()}
-                                onChange={(event) => {
-                                  if (event.target.value === "") return
-
-                                  const value = Number(event.target.value)
-                                  if (Number.isNaN(value)) return
-
-                                  handleMatchChange(match.id, {
-                                    teamOneScore: value,
-                                    teamTwoScore: Number(match.teamTwoScore ?? 0),
-                                  })
-                                }}
+                                value={draft.teamOneScore}
+                                onChange={(event) =>
+                                  setMatchDrafts((current) => ({
+                                    ...current,
+                                    [match.id]: {
+                                      ...draft,
+                                      teamOneScore: event.target.value,
+                                    },
+                                  }))
+                                }
                                 className="h-9 w-12 rounded-md border bg-background px-1 text-center text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                                 placeholder="0"
                               />
@@ -456,19 +564,16 @@ export function FixtureList({ tournamentId, initialFechas, teamCount }: FixtureL
                               <input
                                 type="number"
                                 min={0}
-                                defaultValue={match.teamTwoScore ?? ""}
-                                onClick={(event) => event.stopPropagation()}
-                                onChange={(event) => {
-                                  if (event.target.value === "") return
-
-                                  const value = Number(event.target.value)
-                                  if (Number.isNaN(value)) return
-
-                                  handleMatchChange(match.id, {
-                                    teamOneScore: Number(match.teamOneScore ?? 0),
-                                    teamTwoScore: value,
-                                  })
-                                }}
+                                value={draft.teamTwoScore}
+                                onChange={(event) =>
+                                  setMatchDrafts((current) => ({
+                                    ...current,
+                                    [match.id]: {
+                                      ...draft,
+                                      teamTwoScore: event.target.value,
+                                    },
+                                  }))
+                                }
                                 className="h-9 w-12 rounded-md border bg-background px-1 text-center text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                                 placeholder="0"
                               />
@@ -485,8 +590,39 @@ export function FixtureList({ tournamentId, initialFechas, teamCount }: FixtureL
                             {formatTeamName(match.teamTwo.name)}
                           </span>
                         </div>
+
+                        {fecha.status !== "CLOSED" ? (
+                          <div className="flex items-center justify-end border-t pt-3">
+                            {isEditing ? (
+                              <Button
+                                type="button"
+                                size="sm"
+                                className="cursor-pointer"
+                                disabled={savingMatchId === match.id}
+                                onClick={(event) => {
+                                  event.stopPropagation()
+                                  void saveMatchDraft(match.id)
+                                }}
+                              >
+                                {savingMatchId === match.id ? (
+                                  <>
+                                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                                    Guardando...
+                                  </>
+                                ) : (
+                                  "Guardar y cerrar"
+                                )}
+                              </Button>
+                            ) : (
+                              <span className="text-xs text-muted-foreground">
+                                Click en la tarjeta para editar hora y goles
+                              </span>
+                            )}
+                          </div>
+                        ) : null}
                       </div>
-                    ))}
+                    )
+                  })}
                 </div>
 
                 {(fecha.restingTeams ?? []).length > 0 ? (

@@ -31,6 +31,12 @@ const teamSchema = z.object({
   imageUrl: z.string().url("La imagen debe ser una URL válida").nullable().optional(),
 })
 
+const matchDetailsSchema = z.object({
+  scheduledAt: z.string().regex(/^([01]\d|2[0-3]):[0-5]\d$/, "Ingresá una hora válida."),
+  teamOneScore: z.coerce.number().int().min(0, "Ingresá un resultado válido."),
+  teamTwoScore: z.coerce.number().int().min(0, "Ingresá un resultado válido."),
+})
+
 export type FixtureMatch = {
   id: string
   slot: number
@@ -578,6 +584,193 @@ export async function updateMatchResult(
       teamTwo: match.teamTwo,
     },
   }
+}
+
+export async function updateMatchDetails(
+  matchId: string,
+  details: {
+    scheduledAt: string
+    teamOneScore: string | number
+    teamTwoScore: string | number
+  }
+) {
+  if (!matchId) {
+    return { error: "El partido es inválido." }
+  }
+
+  const parsed = matchDetailsSchema.safeParse(details)
+  if (!parsed.success) {
+    return { error: parsed.error.issues[0].message }
+  }
+
+  const currentMatch = await prisma.match.findUnique({
+    where: { id: matchId },
+    select: {
+      fechaId: true,
+      fecha: {
+        select: {
+          date: true,
+          status: true,
+          tournamentId: true,
+        },
+      },
+    },
+  })
+
+  if (!currentMatch) {
+    return { error: "El partido no existe." }
+  }
+
+  if (currentMatch.fecha.status === "CLOSED") {
+    return { error: "La fecha está cerrada y sus partidos son de solo lectura." }
+  }
+
+  const date = currentMatch.fecha.date?.toISOString().slice(0, 10)
+  if (!date) {
+    return { error: "Seleccioná un día para la fecha antes de asignar horarios." }
+  }
+
+  const scheduledAt = buildLocalDateTime(date, parsed.data.scheduledAt)
+  if (!scheduledAt) {
+    return { error: "La hora ingresada no es válida." }
+  }
+
+  const fecha = await prisma.$transaction(async (tx) => {
+    await tx.match.update({
+      where: { id: matchId },
+      data: {
+        scheduledAt,
+        teamOneScore: parsed.data.teamOneScore,
+        teamTwoScore: parsed.data.teamTwoScore,
+      },
+      select: { id: true },
+    })
+
+    const matches = await tx.match.findMany({
+      where: { fechaId: currentMatch.fechaId },
+      select: {
+        id: true,
+        slot: true,
+        scheduledAt: true,
+        status: true,
+        teamOneScore: true,
+        teamTwoScore: true,
+        teamOne: {
+          select: { id: true, name: true },
+        },
+        teamTwo: {
+          select: { id: true, name: true },
+        },
+      },
+    })
+
+    const orderedMatches = matches
+      .slice()
+      .sort((a, b) => {
+        const firstTime = a.scheduledAt ? a.scheduledAt.getTime() : Number.POSITIVE_INFINITY
+        const secondTime = b.scheduledAt ? b.scheduledAt.getTime() : Number.POSITIVE_INFINITY
+
+        if (firstTime !== secondTime) {
+          return firstTime - secondTime
+        }
+
+        return a.slot - b.slot
+      })
+
+    for (const match of matches) {
+      await tx.match.update({
+        where: { id: match.id },
+        data: { slot: match.slot + 1000 },
+        select: { id: true },
+      })
+    }
+
+    for (let index = 0; index < orderedMatches.length; index += 1) {
+      const match = orderedMatches[index]
+      await tx.match.update({
+        where: { id: match.id },
+        data: { slot: index + 1 },
+        select: { id: true },
+      })
+    }
+
+    const teams = await tx.team.findMany({
+      where: { tournamentId: currentMatch.fecha.tournamentId },
+      select: { id: true, name: true },
+    })
+
+    const updatedFecha = await tx.fecha.findUnique({
+      where: { id: currentMatch.fechaId },
+      select: {
+        id: true,
+        number: true,
+        date: true,
+        status: true,
+        matches: {
+          orderBy: { slot: "asc" },
+          select: {
+            id: true,
+            slot: true,
+            scheduledAt: true,
+            status: true,
+            teamOneScore: true,
+            teamTwoScore: true,
+            teamOne: {
+              select: {
+                id: true,
+                name: true,
+              },
+            },
+            teamTwo: {
+              select: {
+                id: true,
+                name: true,
+              },
+            },
+          },
+        },
+      },
+    })
+
+    if (!updatedFecha) {
+      return null
+    }
+
+    return {
+      id: updatedFecha.id,
+      number: updatedFecha.number,
+      date: updatedFecha.date ? updatedFecha.date.toISOString().slice(0, 10) : null,
+      status: updatedFecha.status,
+      matches: updatedFecha.matches.map((match) => ({
+        id: match.id,
+        slot: match.slot,
+        scheduledAt: match.scheduledAt?.toISOString() ?? null,
+        status: match.status,
+        teamOneScore: match.teamOneScore,
+        teamTwoScore: match.teamTwoScore,
+        teamOne: {
+          id: match.teamOne.id,
+          name: match.teamOne.name,
+        },
+        teamTwo: {
+          id: match.teamTwo.id,
+          name: match.teamTwo.name,
+        },
+      })),
+      restingTeams: teams.filter(
+        (team) =>
+          !updatedFecha.matches.some(
+            (match) => match.teamOne.id === team.id || match.teamTwo.id === team.id
+          )
+      ),
+    }
+  })
+
+  if (!fecha) {
+    return { error: "La fecha no existe." }
+  }
+
+  return { success: true, fecha }
 }
 
 export async function updateMatchScheduledTime(matchId: string, time: string) {
