@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button"
 import {
   closeFecha,
   deleteFecha,
+  deleteMatch,
   generateFecha,
   toggleMatchStatus,
   updateMatchDetails,
@@ -327,6 +328,41 @@ export function FixtureList({ tournamentId, initialFechas, teamCount }: FixtureL
     setFechas((current) => current.filter((fecha) => fecha.id !== fechaId))
   }
 
+  async function handleDeleteMatch(matchId: string) {
+    const confirmed = window.confirm(
+      "¿Seguro que querés eliminar este partido? Los equipos pasarán al listado de descanso de esta fecha."
+    )
+
+    if (!confirmed) {
+      return
+    }
+
+    setError(null)
+
+    const response = await deleteMatch(matchId)
+
+    if (response?.error) {
+      setError(response.error)
+      return
+    }
+
+    if (response?.fecha) {
+      setFechas((current) =>
+        current.map((fecha) => (fecha.id === response.fecha.id ? response.fecha : fecha))
+      )
+
+      if (editingMatchId === matchId) {
+        setEditingMatchId(null)
+      }
+
+      setMatchDrafts((current) => {
+        const nextDrafts = { ...current }
+        delete nextDrafts[matchId]
+        return nextDrafts
+      })
+    }
+  }
+
   async function handleCloseFecha(fechaId: string) {
     const fecha = fechas.find((item) => item.id === fechaId)
 
@@ -594,29 +630,61 @@ export function FixtureList({ tournamentId, initialFechas, teamCount }: FixtureL
                         {fecha.status !== "CLOSED" ? (
                           <div className="flex items-center justify-end border-t pt-3">
                             {isEditing ? (
-                              <Button
-                                type="button"
-                                size="sm"
-                                className="cursor-pointer"
-                                disabled={savingMatchId === match.id}
-                                onClick={(event) => {
-                                  event.stopPropagation()
-                                  void saveMatchDraft(match.id)
-                                }}
-                              >
-                                {savingMatchId === match.id ? (
-                                  <>
-                                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                                    Guardando...
-                                  </>
-                                ) : (
-                                  "Guardar y cerrar"
-                                )}
-                              </Button>
+                              <div className="flex items-center gap-2">
+                                <Button
+                                  type="button"
+                                  size="sm"
+                                  className="cursor-pointer"
+                                  disabled={savingMatchId === match.id}
+                                  onClick={(event) => {
+                                    event.stopPropagation()
+                                    void saveMatchDraft(match.id)
+                                  }}
+                                >
+                                  {savingMatchId === match.id ? (
+                                    <>
+                                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                                      Guardando...
+                                    </>
+                                  ) : (
+                                    "Guardar y cerrar"
+                                  )}
+                                </Button>
+                                <Button
+                                  type="button"
+                                  variant="outline"
+                                  size="sm"
+                                  className="cursor-pointer gap-2 text-destructive hover:bg-destructive/10 hover:text-destructive"
+                                  disabled={savingMatchId === match.id}
+                                  onClick={(event) => {
+                                    event.stopPropagation()
+                                    void handleDeleteMatch(match.id)
+                                  }}
+                                >
+                                  <Trash2 className="h-3.5 w-3.5" />
+                                  Eliminar partido
+                                </Button>
+                              </div>
                             ) : (
-                              <span className="text-xs text-muted-foreground">
-                                Click en la tarjeta para editar hora y goles
-                              </span>
+                              <div className="flex items-center gap-2">
+                                <span className="text-xs text-muted-foreground">
+                                  Click en la tarjeta para editar hora y goles
+                                </span>
+                                <Button
+                                  type="button"
+                                  variant="outline"
+                                  size="sm"
+                                  className="cursor-pointer gap-2 text-destructive hover:bg-destructive/10 hover:text-destructive"
+                                  disabled={savingMatchId === match.id}
+                                  onClick={(event) => {
+                                    event.stopPropagation()
+                                    void handleDeleteMatch(match.id)
+                                  }}
+                                >
+                                  <Trash2 className="h-3.5 w-3.5" />
+                                  Eliminar partido
+                                </Button>
+                              </div>
                             )}
                           </div>
                         ) : null}

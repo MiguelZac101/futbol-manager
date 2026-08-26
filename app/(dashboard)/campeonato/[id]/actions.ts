@@ -773,6 +773,128 @@ export async function updateMatchDetails(
   return { success: true, fecha }
 }
 
+export async function deleteMatch(matchId: string) {
+  if (!matchId) {
+    return { error: "El partido es inválido." }
+  }
+
+  const currentMatch = await prisma.match.findUnique({
+    where: { id: matchId },
+    select: {
+      fechaId: true,
+      fecha: {
+        select: {
+          status: true,
+          tournamentId: true,
+        },
+      },
+    },
+  })
+
+  if (!currentMatch) {
+    return { error: "El partido no existe." }
+  }
+
+  if (currentMatch.fecha.status === "CLOSED") {
+    return { error: "La fecha está cerrada y sus partidos son de solo lectura." }
+  }
+
+  const fecha = await prisma.$transaction(async (tx) => {
+    await tx.match.delete({
+      where: { id: matchId },
+      select: { id: true },
+    })
+
+    const matches = await tx.match.findMany({
+      where: { fechaId: currentMatch.fechaId },
+      select: {
+        id: true,
+        slot: true,
+        scheduledAt: true,
+        status: true,
+        teamOneScore: true,
+        teamTwoScore: true,
+        teamOne: {
+          select: {
+            id: true,
+            name: true,
+          },
+        },
+        teamTwo: {
+          select: {
+            id: true,
+            name: true,
+          },
+        },
+      },
+    })
+
+    const teams = await tx.team.findMany({
+      where: { tournamentId: currentMatch.fecha.tournamentId },
+      select: { id: true, name: true },
+    })
+
+    const updatedFecha = await tx.fecha.findUnique({
+      where: { id: currentMatch.fechaId },
+      select: {
+        id: true,
+        number: true,
+        date: true,
+        status: true,
+      },
+    })
+
+    if (!updatedFecha) {
+      return null
+    }
+
+    return {
+      id: updatedFecha.id,
+      number: updatedFecha.number,
+      date: updatedFecha.date ? updatedFecha.date.toISOString().slice(0, 10) : null,
+      status: updatedFecha.status,
+      matches: matches
+        .slice()
+        .sort((a, b) => {
+          const firstTime = a.scheduledAt ? a.scheduledAt.getTime() : Number.POSITIVE_INFINITY
+          const secondTime = b.scheduledAt ? b.scheduledAt.getTime() : Number.POSITIVE_INFINITY
+
+          if (firstTime !== secondTime) {
+            return firstTime - secondTime
+          }
+
+          return a.slot - b.slot
+        })
+        .map((match) => ({
+          id: match.id,
+          slot: match.slot,
+          scheduledAt: match.scheduledAt?.toISOString() ?? null,
+          status: match.status,
+          teamOneScore: match.teamOneScore,
+          teamTwoScore: match.teamTwoScore,
+          teamOne: {
+            id: match.teamOne.id,
+            name: match.teamOne.name,
+          },
+          teamTwo: {
+            id: match.teamTwo.id,
+            name: match.teamTwo.name,
+          },
+        })),
+      restingTeams: teams.filter(
+        (team) =>
+          !matches.some((match) => match.teamOne.id === team.id || match.teamTwo.id === team.id)
+      ),
+    }
+  })
+
+  if (!fecha) {
+    return { error: "La fecha no existe." }
+  }
+
+  return { success: true, fecha }
+}
+
 export async function updateMatchScheduledTime(matchId: string, time: string) {
   if (!matchId) {
     return { error: "El partido es inválido." }
