@@ -787,17 +787,22 @@ export function FixtureList({ tournamentId, initialFechas, teamCount }: FixtureL
                 ) : null}
 
                 {fecha.status !== "CLOSED" ? (
-                  <div className="mt-4 grid gap-2 border-t pt-3 sm:grid-cols-3">
-                    <Button
-                      type="button"
-                      variant="outline"
-                      size="sm"
-                      className="w-full gap-2"
-                      disabled={fecha.restingTeams.length < 2}
-                      onClick={() => openCreateMatchDialog(fecha.id)}
-                    >
-                      Crear partido
-                    </Button>
+                  <div
+                    className={`mt-4 grid gap-2 border-t pt-3 ${
+                      fecha.restingTeams.length >= 2 ? "sm:grid-cols-3" : "sm:grid-cols-2"
+                    }`}
+                  >
+                    {fecha.restingTeams.length >= 2 ? (
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        className="w-full gap-2"
+                        onClick={() => openCreateMatchDialog(fecha.id)}
+                      >
+                        Crear partido
+                      </Button>
+                    ) : null}
                     <Button
                       type="button"
                       variant="outline"
