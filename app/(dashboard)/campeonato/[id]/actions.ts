@@ -37,6 +37,11 @@ const matchDetailsSchema = z.object({
   teamTwoScore: z.coerce.number().int().min(0, "Ingresá un resultado válido."),
 })
 
+const createMatchSchema = z.object({
+  teamOneId: z.string().trim().min(1, "Elegí dos equipos distintos."),
+  teamTwoId: z.string().trim().min(1, "Elegí dos equipos distintos."),
+})
+
 export type FixtureMatch = {
   id: string
   slot: number
@@ -893,6 +898,255 @@ export async function deleteMatch(matchId: string) {
   }
 
   return { success: true, fecha }
+}
+
+export async function createMatchFromRestingTeams(
+  fechaId: string,
+  input: { teamOneId: string; teamTwoId: string }
+) {
+  if (!fechaId) {
+    return { error: "La fecha es inválida." }
+  }
+
+  const parsed = createMatchSchema.safeParse(input)
+  if (!parsed.success) {
+    return { error: parsed.error.issues[0].message }
+  }
+
+  if (parsed.data.teamOneId === parsed.data.teamTwoId) {
+    return { error: "Elegí dos equipos distintos." }
+  }
+
+  const currentFecha = await prisma.fecha.findUnique({
+    where: { id: fechaId },
+    select: {
+      date: true,
+      status: true,
+      tournamentId: true,
+      matches: {
+        select: {
+          teamOneId: true,
+          teamTwoId: true,
+          slot: true,
+          scheduledAt: true,
+        },
+      },
+    },
+  })
+
+  if (!currentFecha) {
+    return { error: "La fecha no existe." }
+  }
+
+  if (currentFecha.status === "CLOSED") {
+    return { error: "La fecha está cerrada y sus partidos son de solo lectura." }
+  }
+
+  const fechaDate = currentFecha.date?.toISOString().slice(0, 10)
+  if (!fechaDate) {
+    return { error: "Seleccioná un día para la fecha antes de crear partidos." }
+  }
+
+  const [tournament, teams, previousMatches] = await Promise.all([
+    prisma.tournament.findUnique({
+      where: { id: currentFecha.tournamentId },
+      select: {
+        fixtureStartTime: true,
+        matchIntervalMinutes: true,
+      },
+    }),
+    prisma.team.findMany({
+      where: { tournamentId: currentFecha.tournamentId },
+      select: { id: true, name: true },
+    }),
+    prisma.match.findMany({
+      where: {
+        fecha: { tournamentId: currentFecha.tournamentId },
+      },
+      select: {
+        teamOneId: true,
+        teamTwoId: true,
+      },
+    }),
+  ])
+
+  if (!tournament) {
+    return { error: "El campeonato no existe." }
+  }
+
+  const restingTeams = teams.filter(
+    (team) => !currentFecha.matches.some((match) => match.teamOneId === team.id || match.teamTwoId === team.id)
+  )
+
+  if (
+    !restingTeams.some((team) => team.id === parsed.data.teamOneId) ||
+    !restingTeams.some((team) => team.id === parsed.data.teamTwoId)
+  ) {
+    return { error: "Los equipos seleccionados deben estar descansando en esta fecha." }
+  }
+
+  const playedPairs = new Set(
+    previousMatches.map((match) => getPairKey(match.teamOneId, match.teamTwoId))
+  )
+  const selectedPairKey = getPairKey(parsed.data.teamOneId, parsed.data.teamTwoId)
+
+  if (playedPairs.has(selectedPairKey)) {
+    return { error: "Ese partido ya se jugó en una fecha anterior." }
+  }
+
+  const nextSlot = currentFecha.matches.reduce((maxSlot, match) => Math.max(maxSlot, match.slot), 0) + 1
+  const latestScheduledMatch = currentFecha.matches.reduce<typeof currentFecha.matches[number] | null>(
+    (latest, match) => {
+      if (!match.scheduledAt) {
+        return latest
+      }
+
+      if (!latest || !latest.scheduledAt) {
+        return match
+      }
+
+      if (match.scheduledAt.getTime() > latest.scheduledAt.getTime()) {
+        return match
+      }
+
+      if (
+        match.scheduledAt.getTime() === latest.scheduledAt.getTime() &&
+        match.slot > latest.slot
+      ) {
+        return match
+      }
+
+      return latest
+    },
+    null
+  )
+
+  const scheduledAt = latestScheduledMatch?.scheduledAt
+    ? new Date(latestScheduledMatch.scheduledAt.getTime() + tournament.matchIntervalMinutes * 60_000)
+    : buildLocalDateTime(fechaDate, tournament.fixtureStartTime)
+
+  if (!scheduledAt) {
+    return { error: "La hora de inicio del fixture no es válida." }
+  }
+
+  const createdMatch = await prisma.$transaction(async (tx) => {
+    const match = await tx.match.create({
+      data: {
+        fechaId,
+        slot: nextSlot,
+        scheduledAt,
+        teamOneId: parsed.data.teamOneId,
+        teamTwoId: parsed.data.teamTwoId,
+        status: "SCHEDULED",
+        teamOneScore: 0,
+        teamTwoScore: 0,
+      },
+      select: {
+        id: true,
+        slot: true,
+        scheduledAt: true,
+        status: true,
+        teamOneScore: true,
+        teamTwoScore: true,
+        teamOne: {
+          select: {
+            id: true,
+            name: true,
+          },
+        },
+        teamTwo: {
+          select: {
+            id: true,
+            name: true,
+          },
+        },
+      },
+    })
+
+    const updatedFecha = await tx.fecha.findUnique({
+      where: { id: fechaId },
+      select: {
+        id: true,
+        number: true,
+        date: true,
+        status: true,
+        matches: {
+          orderBy: { slot: "asc" },
+          select: {
+            id: true,
+            slot: true,
+            scheduledAt: true,
+            status: true,
+            teamOneScore: true,
+            teamTwoScore: true,
+            teamOne: {
+              select: {
+                id: true,
+                name: true,
+              },
+            },
+            teamTwo: {
+              select: {
+                id: true,
+                name: true,
+              },
+            },
+          },
+        },
+      },
+    })
+
+    if (!updatedFecha) {
+      return null
+    }
+
+    return {
+      match: {
+        id: match.id,
+        slot: match.slot,
+        scheduledAt: match.scheduledAt?.toISOString() ?? null,
+        status: match.status,
+        teamOneScore: match.teamOneScore,
+        teamTwoScore: match.teamTwoScore,
+        teamOne: match.teamOne,
+        teamTwo: match.teamTwo,
+      },
+      fecha: {
+        id: updatedFecha.id,
+        number: updatedFecha.number,
+        date: updatedFecha.date ? updatedFecha.date.toISOString().slice(0, 10) : null,
+        status: updatedFecha.status,
+        matches: updatedFecha.matches.map((item) => ({
+          id: item.id,
+          slot: item.slot,
+          scheduledAt: item.scheduledAt?.toISOString() ?? null,
+          status: item.status,
+          teamOneScore: item.teamOneScore,
+          teamTwoScore: item.teamTwoScore,
+          teamOne: {
+            id: item.teamOne.id,
+            name: item.teamOne.name,
+          },
+          teamTwo: {
+            id: item.teamTwo.id,
+            name: item.teamTwo.name,
+          },
+        })),
+        restingTeams: teams.filter(
+          (team) =>
+            !updatedFecha.matches.some(
+              (matchItem) => matchItem.teamOne.id === team.id || matchItem.teamTwo.id === team.id
+            )
+        ),
+      },
+    }
+  })
+
+  if (!createdMatch) {
+    return { error: "La fecha no existe." }
+  }
+
+  return { success: true, ...createdMatch }
 }
 
 export async function updateMatchScheduledTime(matchId: string, time: string) {

@@ -4,9 +4,25 @@ import { useEffect, useRef, useState } from "react"
 import { CalendarDays, Clock3, Loader2, LockKeyhole, Trash2 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog"
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select"
+import {
   closeFecha,
   deleteFecha,
   deleteMatch,
+  createMatchFromRestingTeams,
   generateFecha,
   toggleMatchStatus,
   updateMatchDetails,
@@ -125,10 +141,18 @@ export function FixtureList({ tournamentId, initialFechas, teamCount }: FixtureL
   const [editingMatchId, setEditingMatchId] = useState<string | null>(null)
   const [matchDrafts, setMatchDrafts] = useState<Record<string, MatchDraft>>({})
   const [savingMatchId, setSavingMatchId] = useState<string | null>(null)
+  const [createMatchFechaId, setCreateMatchFechaId] = useState<string | null>(null)
+  const [createMatchTeamOneId, setCreateMatchTeamOneId] = useState("")
+  const [createMatchTeamTwoId, setCreateMatchTeamTwoId] = useState("")
+  const [isCreatingMatch, setIsCreatingMatch] = useState(false)
   const highlightTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const fechaHighlightTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const maximumFechaCount = teamCount % 2 === 0 ? teamCount - 1 : teamCount
   const canGenerateFecha = teamCount >= 2 && fechas.length < maximumFechaCount
+  const createMatchFecha = createMatchFechaId
+    ? fechas.find((fecha) => fecha.id === createMatchFechaId) ?? null
+    : null
+  const createMatchTeams = createMatchFecha?.restingTeams ?? []
 
   useEffect(() => {
     return () => {
@@ -141,6 +165,24 @@ export function FixtureList({ tournamentId, initialFechas, teamCount }: FixtureL
       }
     }
   }, [])
+
+  function openCreateMatchDialog(fechaId: string) {
+    const fecha = fechas.find((item) => item.id === fechaId)
+    if (!fecha || fecha.restingTeams.length < 2) {
+      return
+    }
+
+    setError(null)
+    setCreateMatchFechaId(fechaId)
+    setCreateMatchTeamOneId(fecha.restingTeams[0].id)
+    setCreateMatchTeamTwoId(fecha.restingTeams[1].id)
+  }
+
+  function closeCreateMatchDialog() {
+    setCreateMatchFechaId(null)
+    setCreateMatchTeamOneId("")
+    setCreateMatchTeamTwoId("")
+  }
 
   function flashMovedMatch(matchId: string) {
     if (highlightTimeoutRef.current) {
@@ -360,6 +402,50 @@ export function FixtureList({ tournamentId, initialFechas, teamCount }: FixtureL
         delete nextDrafts[matchId]
         return nextDrafts
       })
+    }
+  }
+
+  async function handleCreateMatch() {
+    if (!createMatchFechaId) {
+      return
+    }
+
+    if (!createMatchTeamOneId || !createMatchTeamTwoId) {
+      setError("Elegí dos equipos para crear el partido.")
+      return
+    }
+
+    if (createMatchTeamOneId === createMatchTeamTwoId) {
+      setError("Elegí dos equipos distintos.")
+      return
+    }
+
+    setIsCreatingMatch(true)
+    setError(null)
+
+    const response = await createMatchFromRestingTeams(createMatchFechaId, {
+      teamOneId: createMatchTeamOneId,
+      teamTwoId: createMatchTeamTwoId,
+    })
+
+    setIsCreatingMatch(false)
+
+    if (response?.error) {
+      setError(response.error)
+      return
+    }
+
+    if (response?.fecha) {
+      setFechas((current) =>
+        current.map((fecha) => (fecha.id === response.fecha.id ? response.fecha : fecha))
+      )
+
+      if (response.match) {
+        setHighlightedMatchId(response.match.id)
+        flashMovedMatch(response.match.id)
+      }
+
+      closeCreateMatchDialog()
     }
   }
 
@@ -701,12 +787,22 @@ export function FixtureList({ tournamentId, initialFechas, teamCount }: FixtureL
                 ) : null}
 
                 {fecha.status !== "CLOSED" ? (
-                  <div className="mt-4 flex gap-2 border-t pt-3">
+                  <div className="mt-4 grid gap-2 border-t pt-3 sm:grid-cols-3">
                     <Button
                       type="button"
                       variant="outline"
                       size="sm"
-                      className="flex-1 gap-2"
+                      className="w-full gap-2"
+                      disabled={fecha.restingTeams.length < 2}
+                      onClick={() => openCreateMatchDialog(fecha.id)}
+                    >
+                      Crear partido
+                    </Button>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      className="w-full gap-2"
                       onClick={() => handleCloseFecha(fecha.id)}
                     >
                       <LockKeyhole className="h-3.5 w-3.5" />
@@ -716,7 +812,7 @@ export function FixtureList({ tournamentId, initialFechas, teamCount }: FixtureL
                       type="button"
                       variant="outline"
                       size="sm"
-                      className="flex-1 gap-2 text-destructive hover:bg-destructive/10 hover:text-destructive"
+                      className="w-full gap-2 text-destructive hover:bg-destructive/10 hover:text-destructive"
                       onClick={() => handleDeleteFecha(fecha.id)}
                     >
                       <Trash2 className="h-3.5 w-3.5" />
@@ -728,6 +824,82 @@ export function FixtureList({ tournamentId, initialFechas, teamCount }: FixtureL
             ))}
         </div>
       )}
+
+      <Dialog
+        open={createMatchFechaId !== null}
+        onOpenChange={(nextOpen) => {
+          if (!nextOpen) {
+            closeCreateMatchDialog()
+            setError(null)
+          }
+        }}
+      >
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Crear partido</DialogTitle>
+            <DialogDescription>
+              Elegí dos equipos que descansan esta fecha. El sistema validará que el cruce no se
+              haya repetido antes.
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-4">
+            <div className="space-y-2">
+              <label className="text-sm font-medium" htmlFor="team-one-select">
+                Equipo 1
+              </label>
+              <Select value={createMatchTeamOneId} onValueChange={setCreateMatchTeamOneId}>
+                <SelectTrigger id="team-one-select">
+                  <SelectValue placeholder="Seleccioná un equipo" />
+                </SelectTrigger>
+                <SelectContent>
+                  {createMatchTeams.map((team) => (
+                    <SelectItem key={team.id} value={team.id}>
+                      {formatTeamName(team.name)}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div className="space-y-2">
+              <label className="text-sm font-medium" htmlFor="team-two-select">
+                Equipo 2
+              </label>
+              <Select value={createMatchTeamTwoId} onValueChange={setCreateMatchTeamTwoId}>
+                <SelectTrigger id="team-two-select">
+                  <SelectValue placeholder="Seleccioná un equipo" />
+                </SelectTrigger>
+                <SelectContent>
+                  {createMatchTeams.map((team) => (
+                    <SelectItem key={team.id} value={team.id}>
+                      {formatTeamName(team.name)}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            {error ? <p className="text-sm text-destructive">{error}</p> : null}
+          </div>
+
+          <DialogFooter>
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => {
+                closeCreateMatchDialog()
+                setError(null)
+              }}
+            >
+              Cancelar
+            </Button>
+            <Button type="button" disabled={isCreatingMatch} onClick={() => void handleCreateMatch()}>
+              {isCreatingMatch ? "Creando..." : "Crear partido"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }
