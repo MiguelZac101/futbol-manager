@@ -48,6 +48,13 @@ const data = {
         <UsersIcon />
       ),
     },
+    {
+      title: "Canchas",
+      url: "/canchas",
+      icon: (
+        <FolderIcon />
+      ),
+    },
   ],
   navClouds: [
     {

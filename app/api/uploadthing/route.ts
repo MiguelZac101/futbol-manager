@@ -10,6 +10,9 @@ export const fileRouter = {
   refereeImage: f({ image: { maxFileSize: "4MB", maxFileCount: 1 } }).onUploadComplete(async ({ file }) => {
     return { url: file.ufsUrl ?? file.url };
   }),
+  venueImage: f({ image: { maxFileSize: "4MB", maxFileCount: 1 } }).onUploadComplete(async ({ file }) => {
+    return { url: file.ufsUrl ?? file.url };
+  }),
 } satisfies FileRouter;
 
 export type OurFileRouter = typeof fileRouter;
