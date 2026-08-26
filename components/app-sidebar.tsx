@@ -41,7 +41,13 @@ const data = {
         <Trophy/>
       ),
     },
-    
+    {
+      title: "Árbitros",
+      url: "/arbitros",
+      icon: (
+        <UsersIcon />
+      ),
+    },
   ],
   navClouds: [
     {

@@ -75,6 +75,7 @@ model Venue {
 model Referee {
   id       String  @id @default(cuid())
   name     String
+  dni      String
   imageUrl String?
 
   ownerId String
