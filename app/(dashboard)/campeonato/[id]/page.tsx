@@ -1,6 +1,6 @@
 import Link from "next/link"
 import Image from "next/image"
-import { Trophy, Settings, Trophy as TrophyIcon, BarChart3, Users } from "lucide-react"
+import { Trophy, Settings, Trophy as TrophyIcon, BarChart3, Users, ArrowRight } from "lucide-react"
 import { prisma } from "@/lib/prisma"
 import {
   Breadcrumb,
@@ -116,15 +116,17 @@ export default async function TournamentDetailPage({
         </div>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 items-stretch">
         {sections.map((section) => (
           <Link
             key={section.id}
             href={section.href}
-            className="group relative overflow-hidden rounded-xl border border-border/70 bg-card p-6 transition-all hover:border-primary/50 hover:shadow-md hover:bg-accent/20 cursor-pointer"
+            className="group relative flex h-full flex-col overflow-hidden rounded-xl border border-border/70 bg-card p-6 transition-all hover:border-primary/50 hover:shadow-md hover:bg-accent/20 cursor-pointer"
           >
-            <div className="flex flex-col gap-3">
-              <div className="text-muted-foreground group-hover:text-primary transition-colors">
+            <ArrowRight className="absolute top-4 right-4 h-4 w-4 text-muted-foreground opacity-0 -translate-x-1 transition-all group-hover:opacity-100 group-hover:translate-x-0" />
+
+            <div className="flex flex-1 flex-col items-center gap-3 text-center">
+              <div className="flex h-16 w-16 items-center justify-center rounded-full bg-muted text-muted-foreground group-hover:bg-primary/10 group-hover:text-primary transition-colors">
                 {section.icon}
               </div>
               <div>
