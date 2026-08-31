@@ -2,6 +2,7 @@
 
 import { useForm } from "react-hook-form"
 import { zodResolver } from "@hookform/resolvers/zod"
+import { ChevronDownIcon } from "lucide-react"
 import {
   Dialog,
   DialogContent,
@@ -20,13 +21,6 @@ import {
 } from "@/components/ui/form"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select"
 import { tournamentSchema, TournamentFormValues } from "./schema"
 import { createTournament } from "../actions"
 import { useEffect } from "react"
@@ -89,15 +83,7 @@ export function CreateTournamentDialog({ open, onOpenChange, onCreated, venues, 
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent
-        className="sm:max-w-md"
-        onPointerDownOutside={(event) => {
-          const target = event.target as HTMLElement
-          if (target.closest("[data-slot='select-content']")) {
-            event.preventDefault()
-          }
-        }}
-      >
+      <DialogContent className="sm:max-w-md">
         <DialogHeader>
           <DialogTitle>Crear Campeonato</DialogTitle>
           <DialogDescription>
@@ -127,20 +113,26 @@ export function CreateTournamentDialog({ open, onOpenChange, onCreated, venues, 
               render={({ field }) => (
                 <FormItem>
                   <FormLabel>Cancha</FormLabel>
-                  <Select value={field.value} onValueChange={field.onChange}>
-                    <FormControl>
-                      <SelectTrigger className="w-full">
-                        <SelectValue placeholder="Selecciona una cancha (opcional)" />
-                      </SelectTrigger>
-                    </FormControl>
-                    <SelectContent>
-                      {venues.map((venue) => (
-                        <SelectItem key={venue.id} value={venue.id}>
-                          {venue.name}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
+                  <FormControl>
+                    <div className="relative">
+                      <select
+                        value={field.value ?? ""}
+                        onChange={field.onChange}
+                        onBlur={field.onBlur}
+                        name={field.name}
+                        ref={field.ref}
+                        className="flex h-8 w-full appearance-none items-center rounded-lg border border-input bg-transparent py-2 pr-8 pl-2.5 text-sm outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 dark:bg-input/30"
+                      >
+                        <option value="">Selecciona una cancha (opcional)</option>
+                        {venues.map((venue) => (
+                          <option key={venue.id} value={venue.id}>
+                            {venue.name}
+                          </option>
+                        ))}
+                      </select>
+                      <ChevronDownIcon className="pointer-events-none absolute top-1/2 right-2.5 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                    </div>
+                  </FormControl>
                   <FormMessage />
                 </FormItem>
               )}
@@ -152,20 +144,26 @@ export function CreateTournamentDialog({ open, onOpenChange, onCreated, venues, 
               render={({ field }) => (
                 <FormItem>
                   <FormLabel>Árbitro</FormLabel>
-                  <Select value={field.value} onValueChange={field.onChange}>
-                    <FormControl>
-                      <SelectTrigger className="w-full">
-                        <SelectValue placeholder="Selecciona un árbitro (opcional)" />
-                      </SelectTrigger>
-                    </FormControl>
-                    <SelectContent>
-                      {referees.map((referee) => (
-                        <SelectItem key={referee.id} value={referee.id}>
-                          {referee.name}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
+                  <FormControl>
+                    <div className="relative">
+                      <select
+                        value={field.value ?? ""}
+                        onChange={field.onChange}
+                        onBlur={field.onBlur}
+                        name={field.name}
+                        ref={field.ref}
+                        className="flex h-8 w-full appearance-none items-center rounded-lg border border-input bg-transparent py-2 pr-8 pl-2.5 text-sm outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 dark:bg-input/30"
+                      >
+                        <option value="">Selecciona un árbitro (opcional)</option>
+                        {referees.map((referee) => (
+                          <option key={referee.id} value={referee.id}>
+                            {referee.name}
+                          </option>
+                        ))}
+                      </select>
+                      <ChevronDownIcon className="pointer-events-none absolute top-1/2 right-2.5 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                    </div>
+                  </FormControl>
                   <FormMessage />
                 </FormItem>
               )}

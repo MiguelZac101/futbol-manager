@@ -4,6 +4,7 @@
 import { auth, currentUser } from "@clerk/nextjs/server"
 import { prisma } from "@/lib/prisma"
 import { revalidatePath } from "next/cache"
+import { z } from "zod"
 import { tournamentSchema } from "./components/schema"
 
 async function ensureLocalUser() {
@@ -103,4 +104,49 @@ export async function deleteTournament(id: string) {
 
   revalidatePath("/campeonato")
   return { success: true }
+}
+
+export async function updateTournament(id: string, formData: FormData) {
+  if (!id) {
+    return { error: "ID de campeonato inválido" }
+  }
+
+  const rawData = {
+    name: formData.get("name"),
+    imageUrl: formData.get("imageUrl") || null,
+    defaultVenueId: formData.get("defaultVenueId") || undefined,
+    defaultRefereeId: formData.get("defaultRefereeId") || undefined,
+  }
+
+  const parsed = tournamentSchema
+    .extend({
+      imageUrl: z.string().url("La imagen debe ser una URL válida").nullable().optional(),
+    })
+    .safeParse(rawData)
+
+  if (!parsed.success) {
+    return { error: parsed.error.issues[0].message }
+  }
+
+  const tournament = await prisma.tournament.update({
+    where: { id },
+    data: {
+      name: parsed.data.name,
+      imageUrl: parsed.data.imageUrl ?? null,
+      defaultVenueId: parsed.data.defaultVenueId || null,
+      defaultRefereeId: parsed.data.defaultRefereeId || null,
+    },
+    select: {
+      id: true,
+      name: true,
+      imageUrl: true,
+      defaultVenueId: true,
+      defaultRefereeId: true,
+    },
+  })
+
+  revalidatePath("/campeonato")
+  revalidatePath(`/campeonato/${id}`)
+
+  return { success: true, tournament }
 }

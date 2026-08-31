@@ -10,6 +10,8 @@ import {
   BreadcrumbPage,
   BreadcrumbSeparator,
 } from "@/components/ui/breadcrumb"
+import { TournamentActions } from "./components/TournamentActions"
+import { getOrganizerVenues, getOrganizerReferees } from "../actions"
 
 export async function generateMetadata({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params
@@ -45,6 +47,9 @@ export default async function TournamentDetailPage({
   if (!tournament) {
     return <div className="p-6">Campeonato no encontrado.</div>
   }
+
+  const venues = await getOrganizerVenues()
+  const referees = await getOrganizerReferees()
 
   const sections: SectionCard[] = [
     {
@@ -109,9 +114,23 @@ export default async function TournamentDetailPage({
             )}
           </div>
 
-          <div className="space-y-2">
-            <p className="text-sm text-muted-foreground">Detalle del campeonato</p>
-            <h1 className="text-3xl font-bold tracking-tight">{tournament.name}</h1>
+          <div className="flex w-full flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+            <div className="space-y-2">
+              <p className="text-sm text-muted-foreground">Detalle del campeonato</p>
+              <h1 className="text-3xl font-bold tracking-tight">{tournament.name}</h1>
+            </div>
+
+            <TournamentActions
+              tournament={{
+                id: tournament.id,
+                name: tournament.name,
+                imageUrl: tournament.imageUrl,
+                defaultVenueId: tournament.defaultVenueId,
+                defaultRefereeId: tournament.defaultRefereeId,
+              }}
+              venues={venues}
+              referees={referees}
+            />
           </div>
         </div>
       </div>
