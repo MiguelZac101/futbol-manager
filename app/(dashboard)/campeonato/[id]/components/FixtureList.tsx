@@ -348,7 +348,7 @@ export function FixtureList({ tournamentId, initialFechas, teamCount }: FixtureL
 
     if (response?.fecha) {
       setFechas((current) =>
-        current.map((fecha) => (fecha.id === fechaId ? response.fecha : fecha))
+        current.map((fecha) => (fecha.id === fechaId ? { ...fecha, ...response.fecha } : fecha))
       )
     }
   }
