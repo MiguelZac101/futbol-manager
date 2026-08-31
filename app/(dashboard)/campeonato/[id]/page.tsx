@@ -1,6 +1,6 @@
 import Link from "next/link"
 import Image from "next/image"
-import { Trophy, Settings, Trophy as TrophyIcon, BarChart3, Users, ArrowRight } from "lucide-react"
+import { Trophy, Settings, Trophy as TrophyIcon, BarChart3, Users, ArrowRight, MapPin, User } from "lucide-react"
 import { prisma } from "@/lib/prisma"
 import {
   Breadcrumb,
@@ -42,6 +42,10 @@ export default async function TournamentDetailPage({
 
   const tournament = await prisma.tournament.findUnique({
     where: { id },
+    include: {
+      defaultVenue: { select: { name: true, address: true } },
+      defaultReferee: { select: { name: true } },
+    },
   })
 
   if (!tournament) {
@@ -118,6 +122,22 @@ export default async function TournamentDetailPage({
             <div className="space-y-2">
               <p className="text-sm text-muted-foreground">Detalle del campeonato</p>
               <h1 className="text-3xl font-bold tracking-tight">{tournament.name}</h1>
+              {(tournament.defaultReferee || tournament.defaultVenue) ? (
+                <div className="flex flex-col gap-1 text-sm text-muted-foreground sm:flex-row sm:items-center sm:gap-4">
+                  {tournament.defaultReferee ? (
+                    <span className="flex items-center gap-1.5">
+                      <User className="h-4 w-4" />
+                      {tournament.defaultReferee.name}
+                    </span>
+                  ) : null}
+                  {tournament.defaultVenue ? (
+                    <span className="flex items-center gap-1.5">
+                      <MapPin className="h-4 w-4" />
+                      {tournament.defaultVenue.address}
+                    </span>
+                  ) : null}
+                </div>
+              ) : null}
             </div>
 
             <TournamentActions
