@@ -11,7 +11,18 @@ interface Tournament {
   imageUrl?: string | null
 }
 
-export function CampeonatoClient({ tournaments: initialTournaments }: { tournaments: Tournament[] }) {
+interface Option {
+  id: string
+  name: string
+}
+
+interface CampeonatoClientProps {
+  tournaments: Tournament[]
+  venues: Option[]
+  referees: Option[]
+}
+
+export function CampeonatoClient({ tournaments: initialTournaments, venues, referees }: CampeonatoClientProps) {
   const [open, setOpen] = useState(false)
   const [tournaments, setTournaments] = useState(initialTournaments)
 
@@ -32,6 +43,8 @@ export function CampeonatoClient({ tournaments: initialTournaments }: { tourname
         open={open}
         onOpenChange={setOpen}
         onCreated={handleTournamentCreated}
+        venues={venues}
+        referees={referees}
       />
     </>
   )

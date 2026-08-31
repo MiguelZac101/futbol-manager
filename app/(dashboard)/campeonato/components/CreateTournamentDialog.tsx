@@ -20,6 +20,13 @@ import {
 } from "@/components/ui/form"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select"
 import { tournamentSchema, TournamentFormValues } from "./schema"
 import { createTournament } from "../actions"
 import { useEffect } from "react"
@@ -30,17 +37,24 @@ interface TournamentCreated {
   imageUrl?: string | null
 }
 
+interface Option {
+  id: string
+  name: string
+}
+
 interface CreateTournamentDialogProps {
   open: boolean
   onOpenChange: (open: boolean) => void
   onCreated: (tournament: TournamentCreated) => void
+  venues: Option[]
+  referees: Option[]
 }
 
-export function CreateTournamentDialog({ open, onOpenChange, onCreated }: CreateTournamentDialogProps) {
+export function CreateTournamentDialog({ open, onOpenChange, onCreated, venues, referees }: CreateTournamentDialogProps) {
   
   const form = useForm<TournamentFormValues>({
     resolver: zodResolver(tournamentSchema),
-    defaultValues: { name: "" },
+    defaultValues: { name: "", defaultVenueId: "", defaultRefereeId: "" },
   })
 
   useEffect(() => {
@@ -52,6 +66,12 @@ export function CreateTournamentDialog({ open, onOpenChange, onCreated }: Create
   async function onSubmit(values: TournamentFormValues) {
     const formData = new FormData()
     formData.append("name", values.name)
+    if (values.defaultVenueId) {
+      formData.append("defaultVenueId", values.defaultVenueId)
+    }
+    if (values.defaultRefereeId) {
+      formData.append("defaultRefereeId", values.defaultRefereeId)
+    }
 
     const result = await createTournament(formData)
 
@@ -69,7 +89,15 @@ export function CreateTournamentDialog({ open, onOpenChange, onCreated }: Create
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-md">
+      <DialogContent
+        className="sm:max-w-md"
+        onPointerDownOutside={(event) => {
+          const target = event.target as HTMLElement
+          if (target.closest("[data-slot='select-content']")) {
+            event.preventDefault()
+          }
+        }}
+      >
         <DialogHeader>
           <DialogTitle>Crear Campeonato</DialogTitle>
           <DialogDescription>
@@ -88,6 +116,56 @@ export function CreateTournamentDialog({ open, onOpenChange, onCreated }: Create
                   <FormControl>
                     <Input placeholder="Torneo de verano 2026" {...field} />
                   </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
+            <FormField
+              control={form.control}
+              name="defaultVenueId"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Cancha</FormLabel>
+                  <Select value={field.value} onValueChange={field.onChange}>
+                    <FormControl>
+                      <SelectTrigger className="w-full">
+                        <SelectValue placeholder="Selecciona una cancha (opcional)" />
+                      </SelectTrigger>
+                    </FormControl>
+                    <SelectContent>
+                      {venues.map((venue) => (
+                        <SelectItem key={venue.id} value={venue.id}>
+                          {venue.name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
+            <FormField
+              control={form.control}
+              name="defaultRefereeId"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Árbitro</FormLabel>
+                  <Select value={field.value} onValueChange={field.onChange}>
+                    <FormControl>
+                      <SelectTrigger className="w-full">
+                        <SelectValue placeholder="Selecciona un árbitro (opcional)" />
+                      </SelectTrigger>
+                    </FormControl>
+                    <SelectContent>
+                      {referees.map((referee) => (
+                        <SelectItem key={referee.id} value={referee.id}>
+                          {referee.name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
                   <FormMessage />
                 </FormItem>
               )}

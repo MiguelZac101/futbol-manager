@@ -6,6 +6,8 @@ export const tournamentSchema = z.object({
     .string()
     .min(1, "El nombre es requerido")
     .min(3, "El nombre debe tener al menos 3 caracteres"),
+  defaultVenueId: z.string().trim().optional(),
+  defaultRefereeId: z.string().trim().optional(),
 })
 
 export type TournamentFormValues = z.infer<typeof tournamentSchema>

@@ -40,9 +40,31 @@ async function ensureLocalUser() {
   return localUser
 }
 
+export async function getOrganizerVenues() {
+  const owner = await ensureLocalUser()
+
+  return prisma.venue.findMany({
+    where: { ownerId: owner.id },
+    orderBy: { name: "asc" },
+    select: { id: true, name: true },
+  })
+}
+
+export async function getOrganizerReferees() {
+  const owner = await ensureLocalUser()
+
+  return prisma.referee.findMany({
+    where: { ownerId: owner.id },
+    orderBy: { name: "asc" },
+    select: { id: true, name: true },
+  })
+}
+
 export async function createTournament(formData: FormData) {
   const rawData = {
     name: formData.get("name"),
+    defaultVenueId: formData.get("defaultVenueId") || undefined,
+    defaultRefereeId: formData.get("defaultRefereeId") || undefined,
   }
 
   const parsed = tournamentSchema.safeParse(rawData)
@@ -57,6 +79,8 @@ export async function createTournament(formData: FormData) {
     data: {
       name: parsed.data.name,
       organizerId: organizer.id,
+      defaultVenueId: parsed.data.defaultVenueId || null,
+      defaultRefereeId: parsed.data.defaultRefereeId || null,
     },
     select: {
       id: true,
