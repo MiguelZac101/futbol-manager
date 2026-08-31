@@ -4,8 +4,6 @@
 import { useState } from "react"
 import { TournamentList } from "./TournamentList"
 import { CreateTournamentDialog } from "./CreateTournamentDialog"
-import { deleteTournament } from "../actions"
-import { toast } from "sonner"
 
 interface Tournament {
   id: string
@@ -15,21 +13,7 @@ interface Tournament {
 
 export function CampeonatoClient({ tournaments: initialTournaments }: { tournaments: Tournament[] }) {
   const [open, setOpen] = useState(false)
-  const [deletingId, setDeletingId] = useState<string | null>(null)
   const [tournaments, setTournaments] = useState(initialTournaments)
-
-  async function handleDelete(id: string) {
-    setDeletingId(id)
-
-    toast.promise(
-      deleteTournament(id).finally(() => setDeletingId(null)),
-      {
-        loading: "Eliminando campeonato...",
-        success: "Campeonato eliminado",
-        error: "No se pudo eliminar el campeonato",
-      }
-    )
-  }
 
   function handleTournamentCreated(nextTournament: Tournament) {
     setTournaments((current) => [nextTournament, ...current])
@@ -42,8 +26,6 @@ export function CampeonatoClient({ tournaments: initialTournaments }: { tourname
       <TournamentList 
         tournaments={tournaments} 
         onCreate={() => setOpen(true)} 
-        onDelete={handleDelete}
-        deletingId={deletingId}
         />
 
       <CreateTournamentDialog

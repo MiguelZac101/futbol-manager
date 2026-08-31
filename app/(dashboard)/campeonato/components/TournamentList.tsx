@@ -1,8 +1,7 @@
 "use client"
 
 import Link from "next/link"
-import { Trophy, Plus, Pencil, Trash2, Loader2 } from "lucide-react"
-import { Button } from "@/components/ui/button"
+import { Trophy, Plus } from "lucide-react"
 import Image from "next/image"
 import { cn } from "@/lib/utils"
 
@@ -15,17 +14,11 @@ interface Tournament {
 interface TournamentListProps {
   tournaments: Tournament[]
   onCreate?: () => void
-  onEdit?: (id: string) => void
-  onDelete?: (id: string) => void
-  deletingId?: string | null
 }
 
 export function TournamentList({
   tournaments,
   onCreate,
-  onEdit,
-  onDelete,
-  deletingId,
 }: TournamentListProps) {
   return (
     <div className="grid grid-cols-[repeat(auto-fill,minmax(200px,1fr))] gap-4">
@@ -46,13 +39,11 @@ export function TournamentList({
       {/* Cards de campeonatos existentes */}
       {
         tournaments.map((tournament) => {
-        const isDeleting = deletingId === tournament.id
         return (
         <div
           key={tournament.id}
           className={cn(
               "group flex flex-col items-center gap-3 rounded-2xl border border-border/70 bg-card p-6 h-full min-h-45 transition-all duration-200 ease-out hover:border-primary/50 hover:shadow-sm hover:bg-accent/20",
-              isDeleting && "opacity-50 pointer-events-none"
             )}
         >
           <Link
@@ -77,39 +68,6 @@ export function TournamentList({
               {tournament.name}
             </span>
           </Link>
-
-          <div className="flex gap-2 mt-auto pt-1">
-            <Button
-              variant="outline"
-              size="icon"
-              className="h-8 w-8"
-              onClick={(event) => {
-                event.preventDefault()
-                event.stopPropagation()
-                onEdit?.(tournament.id)
-              }}
-              aria-label={`Editar ${tournament.name}`}
-            >
-              <Pencil className="h-3.5 w-3.5" />
-            </Button>
-            <Button
-                variant="outline"
-                size="icon"
-                className="h-8 w-8 text-destructive hover:text-destructive"
-                onClick={(event) => {
-                  event.preventDefault()
-                  event.stopPropagation()
-                  onDelete?.(tournament.id)
-                }}
-                disabled={isDeleting}
-              >
-                {isDeleting ? (
-                  <Loader2 className="h-3.5 w-3.5 animate-spin" />
-                ) : (
-                  <Trash2 className="h-3.5 w-3.5" />
-                )}
-              </Button>
-          </div>
         </div>
         )
         })
