@@ -1,4 +1,6 @@
 import Link from "next/link"
+import Image from "next/image"
+import { Trophy } from "lucide-react"
 import { prisma } from "@/lib/prisma"
 import {
   Breadcrumb,
@@ -61,9 +63,27 @@ export default async function TournamentDetailPage({
         </BreadcrumbList>
       </Breadcrumb>
 
-      <div className="space-y-2">
-        <p className="text-sm text-muted-foreground">Detalle del campeonato</p>
-        <h1 className="text-3xl font-bold tracking-tight">{tournament.name}</h1>
+      <div className="rounded-xl border bg-card p-6">
+        <div className="flex flex-col gap-6 sm:flex-row sm:items-center">
+          <div className="relative h-20 w-20 overflow-hidden rounded-full bg-muted/20 flex items-center justify-center">
+            {tournament.imageUrl ? (
+              <Image
+                src={tournament.imageUrl}
+                alt={tournament.name}
+                fill
+                sizes="80px"
+                className="object-cover"
+              />
+            ) : (
+              <Trophy className="h-10 w-10 text-muted-foreground" />
+            )}
+          </div>
+
+          <div className="space-y-2">
+            <p className="text-sm text-muted-foreground">Detalle del campeonato</p>
+            <h1 className="text-3xl font-bold tracking-tight">{tournament.name}</h1>
+          </div>
+        </div>
       </div>
 
       <div className="space-y-6">
