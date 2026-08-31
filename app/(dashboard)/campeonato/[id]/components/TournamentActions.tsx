@@ -16,6 +16,7 @@ import {
 import { Input } from "@/components/ui/input"
 import { UploadButton } from "@/lib/uploadthing"
 import { updateTournament } from "../../actions"
+import { PublicLink } from "./PublicLink"
 
 interface Option {
   id: string
@@ -26,6 +27,7 @@ interface TournamentActionsProps {
   tournament: {
     id: string
     name: string
+    slug: string
     imageUrl?: string | null
     defaultVenueId?: string | null
     defaultRefereeId?: string | null
@@ -102,6 +104,7 @@ export function TournamentActions({ tournament, venues, referees }: TournamentAc
   return (
     <>
       <div className="flex items-center gap-3">
+        <PublicLink slug={tournament.slug} />
         <Button
           type="button"
           variant="outline"

@@ -144,6 +144,7 @@ export default async function TournamentDetailPage({
               tournament={{
                 id: tournament.id,
                 name: tournament.name,
+                slug: tournament.slug,
                 imageUrl: tournament.imageUrl,
                 defaultVenueId: tournament.defaultVenueId,
                 defaultRefereeId: tournament.defaultRefereeId,

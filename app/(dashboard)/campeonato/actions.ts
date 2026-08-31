@@ -6,6 +6,7 @@ import { prisma } from "@/lib/prisma"
 import { revalidatePath } from "next/cache"
 import { z } from "zod"
 import { tournamentSchema } from "./components/schema"
+import { slugify } from "@/lib/slug"
 
 async function ensureLocalUser() {
   const { userId } = await auth()
@@ -61,6 +62,19 @@ export async function getOrganizerReferees() {
   })
 }
 
+async function generateUniqueSlug(name: string) {
+  const base = slugify(name) || "campeonato"
+  let candidate = base
+  let suffix = 1
+
+  while (await prisma.tournament.findUnique({ where: { slug: candidate }, select: { id: true } })) {
+    suffix += 1
+    candidate = `${base}-${suffix}`
+  }
+
+  return candidate
+}
+
 export async function createTournament(formData: FormData) {
   const rawData = {
     name: formData.get("name"),
@@ -75,10 +89,12 @@ export async function createTournament(formData: FormData) {
   }
 
   const organizer = await ensureLocalUser()
+  const slug = await generateUniqueSlug(parsed.data.name)
 
   const tournament = await prisma.tournament.create({
     data: {
       name: parsed.data.name,
+      slug,
       organizerId: organizer.id,
       defaultVenueId: parsed.data.defaultVenueId || null,
       defaultRefereeId: parsed.data.defaultRefereeId || null,
@@ -86,6 +102,7 @@ export async function createTournament(formData: FormData) {
     select: {
       id: true,
       name: true,
+      slug: true,
       imageUrl: true,
     },
   })
