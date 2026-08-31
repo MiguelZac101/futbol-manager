@@ -21,11 +21,11 @@ export async function generateMetadata({ params }: { params: Promise<{ id: strin
   })
 
   return {
-    title: `${tournament?.name ?? "Campeonato"} - Fechas`,
+    title: `${tournament?.name ?? "Campeonato"} - Configuración`,
   }
 }
 
-export default async function TournamentFechasPage({
+export default async function TournamentConfiguracionPage({
   params,
 }: {
   params: Promise<{ id: string }>
@@ -59,7 +59,7 @@ export default async function TournamentFechasPage({
           </BreadcrumbItem>
           <BreadcrumbSeparator />
           <BreadcrumbItem>
-            <BreadcrumbPage>Fechas</BreadcrumbPage>
+            <BreadcrumbPage>Configuración</BreadcrumbPage>
           </BreadcrumbItem>
         </BreadcrumbList>
       </Breadcrumb>
@@ -81,7 +81,7 @@ export default async function TournamentFechasPage({
           </div>
 
           <div className="space-y-2">
-            <p className="text-sm text-muted-foreground">Fechas del campeonato</p>
+            <p className="text-sm text-muted-foreground">Configuración del campeonato</p>
             <h1 className="text-3xl font-bold tracking-tight">{tournament.name}</h1>
           </div>
         </div>

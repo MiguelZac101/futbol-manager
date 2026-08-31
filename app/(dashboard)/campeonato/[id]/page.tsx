@@ -1,6 +1,6 @@
 import Link from "next/link"
 import Image from "next/image"
-import { Trophy, Calendar, Trophy as TrophyIcon, BarChart3, Users } from "lucide-react"
+import { Trophy, Settings, Trophy as TrophyIcon, BarChart3, Users } from "lucide-react"
 import { prisma } from "@/lib/prisma"
 import {
   Breadcrumb,
@@ -48,11 +48,11 @@ export default async function TournamentDetailPage({
 
   const sections: SectionCard[] = [
     {
-      id: "fechas",
-      title: "Fechas",
-      description: "Configurar y gestionar las fechas del torneo",
-      icon: <Calendar className="h-8 w-8" />,
-      href: `/campeonato/${id}/fechas`,
+      id: "configuracion",
+      title: "Configuración",
+      description: "Configurar fechas, horarios y ajustes del torneo",
+      icon: <Settings className="h-8 w-8" />,
+      href: `/campeonato/${id}/configuracion`,
     },
     {
       id: "fixture",
