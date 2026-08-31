@@ -435,9 +435,9 @@ export function FixtureList({ tournamentId, initialFechas, teamCount }: FixtureL
       return
     }
 
-    if (response?.fecha) {
+    if (response && "success" in response && response.success) {
       setFechas((current) =>
-        current.map((fecha) => (fecha.id === response.fecha.id ? response.fecha : fecha))
+        current.map((fecha) => (fecha.id === response.fecha.id ? { ...fecha, ...response.fecha } : fecha))
       )
 
       if (response.match) {
