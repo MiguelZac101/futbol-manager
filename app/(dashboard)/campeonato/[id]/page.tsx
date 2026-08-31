@@ -1,6 +1,6 @@
 import Link from "next/link"
 import Image from "next/image"
-import { Trophy } from "lucide-react"
+import { Trophy, Calendar, Trophy as TrophyIcon, BarChart3, Users } from "lucide-react"
 import { prisma } from "@/lib/prisma"
 import {
   Breadcrumb,
@@ -10,11 +10,6 @@ import {
   BreadcrumbPage,
   BreadcrumbSeparator,
 } from "@/components/ui/breadcrumb"
-import { TeamList } from "./components/TeamList"
-import { FixtureList } from "./components/FixtureList"
-import { StandingsTable } from "./components/StandingsTable"
-import { FechaConfiguration } from "./components/FechaConfiguration"
-import { getTournamentFechas, getTournamentStandings, getTournamentTeams } from "./actions"
 
 export async function generateMetadata({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params
@@ -26,6 +21,14 @@ export async function generateMetadata({ params }: { params: Promise<{ id: strin
   return {
     title: tournament?.name ?? "Campeonato",
   }
+}
+
+interface SectionCard {
+  id: string
+  title: string
+  description: string
+  icon: React.ReactNode
+  href: string
 }
 
 export default async function TournamentDetailPage({
@@ -43,9 +46,36 @@ export default async function TournamentDetailPage({
     return <div className="p-6">Campeonato no encontrado.</div>
   }
 
-  const teams = await getTournamentTeams(id)
-  const fechas = await getTournamentFechas(id)
-  const standings = await getTournamentStandings(id)
+  const sections: SectionCard[] = [
+    {
+      id: "fechas",
+      title: "Fechas",
+      description: "Configurar y gestionar las fechas del torneo",
+      icon: <Calendar className="h-8 w-8" />,
+      href: `/campeonato/${id}/fechas`,
+    },
+    {
+      id: "fixture",
+      title: "Fixture",
+      description: "Ver y gestionar los partidos del torneo",
+      icon: <TrophyIcon className="h-8 w-8" />,
+      href: `/campeonato/${id}/fixture`,
+    },
+    {
+      id: "posiciones",
+      title: "Tabla de Posiciones",
+      description: "Ver la clasificación de los equipos",
+      icon: <BarChart3 className="h-8 w-8" />,
+      href: `/campeonato/${id}/posiciones`,
+    },
+    {
+      id: "equipos",
+      title: "Equipos",
+      description: "Gestionar los equipos y jugadores",
+      icon: <Users className="h-8 w-8" />,
+      href: `/campeonato/${id}/equipos`,
+    },
+  ]
 
   return (
     <div className="space-y-6 p-6">
@@ -86,32 +116,24 @@ export default async function TournamentDetailPage({
         </div>
       </div>
 
-      <div className="space-y-6">
-        <div className="w-full">
-          <FechaConfiguration
-            tournamentId={id}
-            fechas={fechas}
-            initialFixtureStartTime={tournament.fixtureStartTime}
-            initialMatchIntervalMinutes={tournament.matchIntervalMinutes}
-          />
-        </div>
-
-        <div className="w-full">
-          <FixtureList
-            key={fechas.map((fecha) => `${fecha.id}:${fecha.status}:${fecha.date}`).join("|")}
-            tournamentId={id}
-            initialFechas={fechas}
-            teamCount={teams.length}
-          />
-        </div>
-
-        <div className="w-full">
-          <StandingsTable standings={standings} />
-        </div>
-
-        <div className="w-full">
-          <TeamList tournamentId={id} initialTeams={teams} />
-        </div>
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        {sections.map((section) => (
+          <Link
+            key={section.id}
+            href={section.href}
+            className="group relative overflow-hidden rounded-xl border border-border/70 bg-card p-6 transition-all hover:border-primary/50 hover:shadow-md hover:bg-accent/20 cursor-pointer"
+          >
+            <div className="flex flex-col gap-3">
+              <div className="text-muted-foreground group-hover:text-primary transition-colors">
+                {section.icon}
+              </div>
+              <div>
+                <h3 className="font-semibold text-base">{section.title}</h3>
+                <p className="text-sm text-muted-foreground">{section.description}</p>
+              </div>
+            </div>
+          </Link>
+        ))}
       </div>
     </div>
   )

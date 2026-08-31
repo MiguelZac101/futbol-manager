@@ -1,0 +1,101 @@
+import Link from "next/link"
+import Image from "next/image"
+import { Trophy } from "lucide-react"
+import { prisma } from "@/lib/prisma"
+import {
+  Breadcrumb,
+  BreadcrumbItem,
+  BreadcrumbLink,
+  BreadcrumbList,
+  BreadcrumbPage,
+  BreadcrumbSeparator,
+} from "@/components/ui/breadcrumb"
+import { FixtureList } from "../components/FixtureList"
+import { getTournamentFechas, getTournamentTeams } from "../actions"
+
+export async function generateMetadata({ params }: { params: Promise<{ id: string }> }) {
+  const { id } = await params
+  const tournament = await prisma.tournament.findUnique({
+    where: { id },
+    select: { name: true },
+  })
+
+  return {
+    title: `${tournament?.name ?? "Campeonato"} - Fixture`,
+  }
+}
+
+export default async function TournamentFixturePage({
+  params,
+}: {
+  params: Promise<{ id: string }>
+}) {
+  const { id } = await params
+
+  const tournament = await prisma.tournament.findUnique({
+    where: { id },
+  })
+
+  if (!tournament) {
+    return <div className="p-6">Campeonato no encontrado.</div>
+  }
+
+  const fechas = await getTournamentFechas(id)
+  const teams = await getTournamentTeams(id)
+
+  return (
+    <div className="space-y-6 p-6">
+      <Breadcrumb>
+        <BreadcrumbList>
+          <BreadcrumbItem>
+            <BreadcrumbLink asChild>
+              <Link href="/campeonato">Campeonatos</Link>
+            </BreadcrumbLink>
+          </BreadcrumbItem>
+          <BreadcrumbSeparator />
+          <BreadcrumbItem>
+            <BreadcrumbLink asChild>
+              <Link href={`/campeonato/${id}`}>{tournament.name}</Link>
+            </BreadcrumbLink>
+          </BreadcrumbItem>
+          <BreadcrumbSeparator />
+          <BreadcrumbItem>
+            <BreadcrumbPage>Fixture</BreadcrumbPage>
+          </BreadcrumbItem>
+        </BreadcrumbList>
+      </Breadcrumb>
+
+      <div className="rounded-xl border bg-card p-6">
+        <div className="flex flex-col gap-6 sm:flex-row sm:items-center">
+          <div className="relative h-20 w-20 overflow-hidden rounded-full bg-muted/20 flex items-center justify-center">
+            {tournament.imageUrl ? (
+              <Image
+                src={tournament.imageUrl}
+                alt={tournament.name}
+                fill
+                sizes="80px"
+                className="object-cover"
+              />
+            ) : (
+              <Trophy className="h-10 w-10 text-muted-foreground" />
+            )}
+          </div>
+
+          <div className="space-y-2">
+            <p className="text-sm text-muted-foreground">Fixture del campeonato</p>
+            <h1 className="text-3xl font-bold tracking-tight">{tournament.name}</h1>
+          </div>
+        </div>
+      </div>
+
+      <div className="w-full">
+        <FixtureList
+          key={fechas.map((fecha) => `${fecha.id}:${fecha.status}:${fecha.date}`).join("|")}
+          tournamentId={id}
+          initialFechas={fechas}
+          teamCount={teams.length}
+        />
+      </div>
+    </div>
+  )
+}
