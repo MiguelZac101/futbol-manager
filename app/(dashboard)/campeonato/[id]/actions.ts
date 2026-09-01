@@ -23,7 +23,10 @@ function buildLocalDateTime(date: string, time: string) {
   const hours = Number(timeParts[1])
   const minutes = Number(timeParts[2])
 
-  return new Date(year, month - 1, day, hours, minutes, 0, 0)
+  // Se usa UTC explícito para que la hora configurada (ej. "10:00") se
+  // guarde y muestre siempre igual, sin importar el huso horario del
+  // servidor o del navegador del organizador.
+  return new Date(Date.UTC(year, month - 1, day, hours, minutes, 0, 0))
 }
 
 const teamSchema = z.object({
@@ -1332,8 +1335,8 @@ export async function updateFechaDate(fechaId: string, date: string) {
 
     for (const match of matches) {
       const scheduledTime = [
-        String(match.scheduledAt!.getHours()).padStart(2, "0"),
-        String(match.scheduledAt!.getMinutes()).padStart(2, "0"),
+        String(match.scheduledAt!.getUTCHours()).padStart(2, "0"),
+        String(match.scheduledAt!.getUTCMinutes()).padStart(2, "0"),
       ].join(":")
       await tx.match.update({
         where: { id: match.id },

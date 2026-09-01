@@ -65,8 +65,8 @@ function formatMatchTime(scheduledAt: string | null) {
   }
 
   const date = new Date(scheduledAt)
-  const hours24 = date.getHours()
-  const minutes = String(date.getMinutes()).padStart(2, "0")
+  const hours24 = date.getUTCHours()
+  const minutes = String(date.getUTCMinutes()).padStart(2, "0")
   const period = hours24 >= 12 ? "PM" : "AM"
   const hours12 = hours24 % 12 || 12
   return `${String(hours12).padStart(2, "0")}:${minutes} ${period}`
@@ -77,7 +77,7 @@ function getMatchPeriod(scheduledAt: string | null): "AM" | "PM" {
     return "AM"
   }
 
-  return new Date(scheduledAt).getHours() >= 12 ? "PM" : "AM"
+  return new Date(scheduledAt).getUTCHours() >= 12 ? "PM" : "AM"
 }
 
 function to24HourTime(hour: string, minute: string, period: "AM" | "PM") {
@@ -120,8 +120,8 @@ function sortMatchesBySchedule<T extends { scheduledAt: string | null; slot: num
 
 function createMatchDraft(match: FixtureMatch): MatchDraft {
   const date = match.scheduledAt ? new Date(match.scheduledAt) : null
-  const hour = date ? String(date.getHours() % 12 || 12).padStart(2, "0") : "12"
-  const minute = date ? String(date.getMinutes()).padStart(2, "0") : "00"
+  const hour = date ? String(date.getUTCHours() % 12 || 12).padStart(2, "0") : "12"
+  const minute = date ? String(date.getUTCMinutes()).padStart(2, "0") : "00"
 
   return {
     hour,

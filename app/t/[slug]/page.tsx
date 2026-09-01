@@ -182,6 +182,7 @@ export default async function PublicTournamentPage({
                               {new Date(match.scheduledAt).toLocaleTimeString("es-ES", {
                                 hour: "2-digit",
                                 minute: "2-digit",
+                                timeZone: "UTC",
                               })}
                             </span>
                           ) : null}
