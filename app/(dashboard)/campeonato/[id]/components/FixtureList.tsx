@@ -316,27 +316,6 @@ export function FixtureList({ tournamentId, initialFechas, teamCount }: FixtureL
     }
   }
 
-  async function handleMatchStatusToggle(matchId: string) {
-    const response = await toggleMatchStatus(matchId)
-
-    if (response?.error) {
-      setError(response.error)
-      return
-    }
-
-    if (response?.match) {
-      setFechas((current) =>
-        current.map((fecha) => ({
-          ...fecha,
-          matches: fecha.matches.map((match) =>
-            match.id === matchId
-              ? { ...match, status: response.match.status }
-              : match
-          ),
-        }))
-      )
-    }
-  }
 
   async function handleFechaDateChange(fechaId: string, date: string) {
     const response = await updateFechaDate(fechaId, date)
