@@ -1,7 +1,7 @@
 "use client"
 
 import Link from "next/link"
-import { Trophy, Plus } from "lucide-react"
+import { FlaskConical, Trophy, Plus } from "lucide-react"
 import Image from "next/image"
 import { cn } from "@/lib/utils"
 
@@ -13,11 +13,13 @@ interface Tournament {
 
 interface TournamentListProps {
   tournaments: Tournament[]
+  demoTournament: Tournament | null
   onCreate?: () => void
 }
 
 export function TournamentList({
   tournaments,
+  demoTournament,
   onCreate,
 }: TournamentListProps) {
   return (
@@ -35,6 +37,20 @@ export function TournamentList({
           Campeonato
         </span>
       </button>
+
+      {demoTournament ? (
+        <div className="flex flex-col items-center gap-3 rounded-2xl border border-primary/30 bg-primary/5 p-6 h-full min-h-45">
+          <div className="flex h-16 w-16 items-center justify-center rounded-full bg-primary/10">
+            <FlaskConical className="h-8 w-8 text-primary" />
+          </div>
+          <div className="space-y-1 text-center">
+            <span className="block text-sm font-medium">{demoTournament.name}</span>
+            <span className="block text-xs text-muted-foreground">
+              Demo privada disponible próximamente
+            </span>
+          </div>
+        </div>
+      ) : null}
 
       {/* Cards de campeonatos existentes */}
       {

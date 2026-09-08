@@ -18,11 +18,17 @@ interface Option {
 
 interface CampeonatoClientProps {
   tournaments: Tournament[]
+  demoTournament: Tournament | null
   venues: Option[]
   referees: Option[]
 }
 
-export function CampeonatoClient({ tournaments: initialTournaments, venues, referees }: CampeonatoClientProps) {
+export function CampeonatoClient({
+  tournaments: initialTournaments,
+  demoTournament,
+  venues,
+  referees,
+}: CampeonatoClientProps) {
   const [open, setOpen] = useState(false)
   const [tournaments, setTournaments] = useState(initialTournaments)
 
@@ -35,9 +41,10 @@ export function CampeonatoClient({ tournaments: initialTournaments, venues, refe
       <h1 className="text-2xl mb-6">Campeonatos</h1>
 
       <TournamentList 
-        tournaments={tournaments} 
-        onCreate={() => setOpen(true)} 
-        />
+        tournaments={tournaments}
+        demoTournament={demoTournament}
+        onCreate={() => setOpen(true)}
+      />
 
       <CreateTournamentDialog
         open={open}

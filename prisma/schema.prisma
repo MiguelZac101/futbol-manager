@@ -43,6 +43,7 @@ model Tournament {
   id                 String             @id @default(cuid())
   name               String
   slug               String             @unique
+  demoKey            String?            @unique
   imageUrl           String?
   status             TournamentStatus   @default(UPCOMING)
   tiebreakerCriteria TiebreakerCriteria @default(GOALS_FOR)
