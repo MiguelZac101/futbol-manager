@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache"
 import { z } from "zod"
 import { prisma } from "@/lib/prisma"
+import { authorizeTournamentMutation } from "@/lib/demo-workspace"
 
 function getLocalDateString(date: Date) {
   const year = date.getFullYear()
@@ -320,6 +321,7 @@ export async function getTournamentFechas(tournamentId: string): Promise<Fixture
 }
 
 export async function generateFecha(tournamentId: string) {
+  await authorizeTournamentMutation(tournamentId)
   const [teams, tournament] = await Promise.all([
     prisma.team.findMany({
     where: { tournamentId },
@@ -502,6 +504,7 @@ export async function updateFixtureSettings(
     return { error: "El campeonato es inválido." }
   }
 
+  await authorizeTournamentMutation(tournamentId)
   if (!/^([01]\d|2[0-3]):[0-5]\d$/.test(settings.fixtureStartTime)) {
     return { error: "Ingresá una hora de inicio válida." }
   }
@@ -540,13 +543,14 @@ export async function updateMatchResult(
 
   const currentMatch = await prisma.match.findUnique({
     where: { id: matchId },
-    select: { status: true, fecha: { select: { status: true } } },
+    select: { status: true, fecha: { select: { status: true, tournamentId: true } } },
   })
 
   if (!currentMatch) {
     return { error: "El partido no existe." }
   }
 
+  await authorizeTournamentMutation(currentMatch.fecha.tournamentId)
   if (currentMatch.fecha.status === "CLOSED") {
     return { error: "La fecha está cerrada y sus resultados son de solo lectura." }
   }
@@ -629,6 +633,7 @@ export async function updateMatchDetails(
     return { error: "El partido no existe." }
   }
 
+  await authorizeTournamentMutation(currentMatch.fecha.tournamentId)
   if (currentMatch.fecha.status === "CLOSED") {
     return { error: "La fecha está cerrada y sus partidos son de solo lectura." }
   }
@@ -803,6 +808,7 @@ export async function deleteMatch(matchId: string) {
     return { error: "El partido no existe." }
   }
 
+  await authorizeTournamentMutation(currentMatch.fecha.tournamentId)
   if (currentMatch.fecha.status === "CLOSED") {
     return { error: "La fecha está cerrada y sus partidos son de solo lectura." }
   }
@@ -941,6 +947,7 @@ export async function createMatchFromRestingTeams(
     return { error: "La fecha no existe." }
   }
 
+  await authorizeTournamentMutation(currentFecha.tournamentId)
   if (currentFecha.status === "CLOSED") {
     return { error: "La fecha está cerrada y sus partidos son de solo lectura." }
   }
@@ -1169,6 +1176,7 @@ export async function updateMatchScheduledTime(matchId: string, time: string) {
         select: {
           date: true,
           status: true,
+          tournamentId: true,
         },
       },
     },
@@ -1178,6 +1186,7 @@ export async function updateMatchScheduledTime(matchId: string, time: string) {
     return { error: "El partido no existe." }
   }
 
+  await authorizeTournamentMutation(currentMatch.fecha.tournamentId)
   if (currentMatch.fecha.status === "CLOSED") {
     return { error: "La fecha está cerrada y sus partidos son de solo lectura." }
   }
@@ -1280,7 +1289,7 @@ export async function toggleMatchStatus(matchId: string) {
     where: { id: matchId },
     select: {
       status: true,
-      fecha: { select: { status: true } },
+      fecha: { select: { status: true, tournamentId: true } },
     },
   })
 
@@ -1288,6 +1297,7 @@ export async function toggleMatchStatus(matchId: string) {
     return { error: "El partido no existe." }
   }
 
+  await authorizeTournamentMutation(currentMatch.fecha.tournamentId)
   if (currentMatch.fecha.status === "CLOSED") {
     return { error: "La fecha está cerrada y sus partidos son de solo lectura." }
   }
@@ -1314,13 +1324,14 @@ export async function updateFechaDate(fechaId: string, date: string) {
 
   const currentFecha = await prisma.fecha.findUnique({
     where: { id: fechaId },
-    select: { status: true },
+    select: { status: true, tournamentId: true },
   })
 
   if (!currentFecha) {
     return { error: "La fecha no existe." }
   }
 
+  await authorizeTournamentMutation(currentFecha.tournamentId)
   if (currentFecha.status === "CLOSED") {
     return { error: "La fecha está cerrada y es de solo lectura." }
   }
@@ -1373,13 +1384,14 @@ export async function closeFecha(fechaId: string) {
 
   const currentFecha = await prisma.fecha.findUnique({
     where: { id: fechaId },
-    select: { date: true },
+    select: { date: true, tournamentId: true },
   })
 
   if (!currentFecha) {
     return { error: "La fecha no existe." }
   }
 
+  await authorizeTournamentMutation(currentFecha.tournamentId)
   if (!currentFecha.date) {
     return { error: "Seleccioná un día para la fecha antes de cerrarla." }
   }
@@ -1414,13 +1426,14 @@ export async function reopenFecha(fechaId: string) {
 
   const currentFecha = await prisma.fecha.findUnique({
     where: { id: fechaId },
-    select: { status: true },
+    select: { status: true, tournamentId: true },
   })
 
   if (!currentFecha) {
     return { error: "La fecha no existe." }
   }
 
+  await authorizeTournamentMutation(currentFecha.tournamentId)
   if (currentFecha.status !== "CLOSED") {
     return { error: "Solo se pueden reabrir fechas cerradas." }
   }
@@ -1445,13 +1458,14 @@ export async function deleteFecha(fechaId: string) {
 
   const fecha = await prisma.fecha.findUnique({
     where: { id: fechaId },
-    select: { status: true },
+    select: { status: true, tournamentId: true },
   })
 
   if (!fecha) {
     return { error: "La fecha no existe." }
   }
 
+  await authorizeTournamentMutation(fecha.tournamentId)
   if (fecha.status === "CLOSED") {
     return { error: "La fecha está cerrada y no se puede eliminar." }
   }
@@ -1476,6 +1490,7 @@ export async function createTeam(tournamentId: string, formData: FormData) {
     return { error: parsed.error.issues[0].message }
   }
 
+  await authorizeTournamentMutation(tournamentId)
   const team = await prisma.team.create({
     data: {
       name: parsed.data.name,
@@ -1504,6 +1519,16 @@ export async function updateTeam(teamId: string, formData: FormData) {
     return { error: parsed.error.issues[0].message }
   }
 
+  const teamToUpdate = await prisma.team.findUnique({
+    where: { id: teamId },
+    select: { tournamentId: true },
+  })
+
+  if (!teamToUpdate) {
+    return { error: "El equipo no existe." }
+  }
+
+  await authorizeTournamentMutation(teamToUpdate.tournamentId)
   const team = await prisma.team.update({
     where: { id: teamId },
     data: {
@@ -1526,6 +1551,16 @@ export async function deleteTeam(teamId: string) {
     return { error: "ID del equipo inválido" }
   }
 
+  const team = await prisma.team.findUnique({
+    where: { id: teamId },
+    select: { tournamentId: true },
+  })
+
+  if (!team) {
+    return { error: "El equipo no existe." }
+  }
+
+  await authorizeTournamentMutation(team.tournamentId)
   await prisma.team.delete({
     where: { id: teamId },
   })

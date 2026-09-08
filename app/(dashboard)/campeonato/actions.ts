@@ -7,6 +7,7 @@ import { revalidatePath } from "next/cache"
 import { z } from "zod"
 import { tournamentSchema } from "./components/schema"
 import { slugify } from "@/lib/slug"
+import { authorizeTournamentMutation } from "@/lib/demo-workspace"
 
 export async function getOrganizerVenues() {
   const owner = await ensureLocalUser()
@@ -81,6 +82,7 @@ export async function deleteTournament(id: string) {
     return { error: "ID de campeonato inválido" }
   }
 
+  await authorizeTournamentMutation(id)
   await prisma.tournament.delete({
     where: { id },
   })
@@ -111,6 +113,7 @@ export async function updateTournament(id: string, formData: FormData) {
     return { error: parsed.error.issues[0].message }
   }
 
+  await authorizeTournamentMutation(id)
   const tournament = await prisma.tournament.update({
     where: { id },
     data: {

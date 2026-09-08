@@ -293,3 +293,26 @@ export async function authorizeTournamentRead(tournamentId: string) {
 
   return true
 }
+
+export async function authorizeTournamentMutation(tournamentId: string) {
+  const [user, tournament] = await Promise.all([
+    ensureLocalUser(),
+    prisma.tournament.findUnique({
+      where: { id: tournamentId },
+      select: { organizerId: true, isDemoSandbox: true },
+    }),
+  ])
+
+  if (!tournament) {
+    throw new Error("El campeonato no existe.")
+  }
+
+  if (tournament.isDemoSandbox) {
+    await getAuthorizedDemoSandbox(tournamentId)
+    return
+  }
+
+  if (tournament.organizerId !== user.id) {
+    throw new Error("No tenés permiso para modificar este campeonato.")
+  }
+}
