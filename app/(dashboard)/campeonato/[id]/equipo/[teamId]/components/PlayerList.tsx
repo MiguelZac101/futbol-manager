@@ -168,7 +168,7 @@ export function PlayerList({ teamId, initialPlayers }: PlayerListProps) {
             </div>
           </div>
         ) : (
-          <div className="grid gap-4 grid-cols-3 sm:grid-cols-4 lg:grid-cols-5">
+          <div className="grid gap-4 grid-cols-1 sm:grid-cols-4 lg:grid-cols-5">
             <button
               type="button"
               onClick={openCreateDialog}
