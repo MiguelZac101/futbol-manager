@@ -62,7 +62,7 @@ export default async function TeamDetailPage({ params }: { params: Promise<{ id:
 
   if (!team) {
     return (
-      <div className="p-6">
+      <div>
         <p className="text-muted-foreground">Equipo no encontrado.</p>
       </div>
     )
@@ -72,7 +72,7 @@ export default async function TeamDetailPage({ params }: { params: Promise<{ id:
     : null
 
   return (
-    <div className="space-y-6 p-6">
+    <div className="space-y-6">
       <Breadcrumb>
         <BreadcrumbList>
           <BreadcrumbItem>

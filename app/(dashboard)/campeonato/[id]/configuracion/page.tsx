@@ -42,7 +42,7 @@ export default async function TournamentConfiguracionPage({
   })
 
   if (!tournament) {
-    return <div className="p-6">Campeonato no encontrado.</div>
+    return <div>Campeonato no encontrado.</div>
   }
   const demoContext = tournament.isDemoSandbox
     ? await getAuthorizedDemoSandbox(id)
@@ -51,7 +51,7 @@ export default async function TournamentConfiguracionPage({
   const fechas = await getTournamentFechas(id)
 
   return (
-    <div className="space-y-6 p-6">
+    <div className="space-y-6">
       <Breadcrumb>
         <BreadcrumbList>
           <BreadcrumbItem>
