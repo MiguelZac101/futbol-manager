@@ -1,6 +1,6 @@
 "use client"
 
-import { useTheme } from "next-themes"
+import { useTheme } from "@wrksz/themes/client"
 import { Moon, Sun } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { useSyncExternalStore } from "react"

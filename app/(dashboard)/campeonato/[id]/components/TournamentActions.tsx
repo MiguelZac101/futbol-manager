@@ -31,6 +31,7 @@ interface TournamentActionsProps {
     imageUrl?: string | null
     defaultVenueId?: string | null
     defaultRefereeId?: string | null
+    isDemoSandbox?: boolean
   }
   venues: Option[]
   referees: Option[]
@@ -104,7 +105,7 @@ export function TournamentActions({ tournament, venues, referees }: TournamentAc
   return (
     <>
       <div className="flex items-center gap-3">
-        <PublicLink slug={tournament.slug} />
+        {!tournament.isDemoSandbox ? <PublicLink slug={tournament.slug} /> : null}
         <Button
           type="button"
           variant="outline"

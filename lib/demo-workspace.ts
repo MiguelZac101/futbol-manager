@@ -1,12 +1,28 @@
 import { prisma } from "@/lib/prisma"
 import { ensureLocalUser } from "@/lib/current-user"
 import { randomUUID } from "node:crypto"
+import { redirect } from "next/navigation"
 
 export const DEMO_TOURNAMENT_KEY = "main"
 export const DEMO_WORKSPACE_TTL_MS = 24 * 60 * 60 * 1000
 
 function getExpirationDate(now: Date) {
   return new Date(now.getTime() + DEMO_WORKSPACE_TTL_MS)
+}
+
+async function deleteSandboxTournament(sandboxTournamentId: string) {
+  await prisma.$transaction(async (tx) => {
+    await tx.match.deleteMany({
+      where: {
+        fecha: {
+          tournamentId: sandboxTournamentId,
+        },
+      },
+    })
+    await tx.tournament.delete({
+      where: { id: sandboxTournamentId },
+    })
+  })
 }
 
 export async function getDemoTemplate() {
@@ -181,9 +197,7 @@ export async function getDemoContext() {
       data: { sandboxTournamentId: null },
     })
 
-    await prisma.tournament.delete({
-      where: { id: existingWorkspace.sandboxTournamentId },
-    })
+    await deleteSandboxTournament(existingWorkspace.sandboxTournamentId)
   }
 
   const sandboxTournamentId = randomUUID()
@@ -217,6 +231,29 @@ export async function getDemoContext() {
 }
 
 export const getOrCreateDemoWorkspace = getDemoContext
+
+export async function resetDemoWorkspace() {
+  const [user, templateTournament] = await Promise.all([ensureLocalUser(), getDemoTemplate()])
+  const workspace = await prisma.demoWorkspace.findUnique({
+    where: {
+      userId_templateTournamentId: {
+        userId: user.id,
+        templateTournamentId: templateTournament.id,
+      },
+    },
+    select: { id: true, sandboxTournamentId: true },
+  })
+
+  if (workspace?.sandboxTournamentId) {
+    await prisma.demoWorkspace.update({
+      where: { id: workspace.id },
+      data: { sandboxTournamentId: null },
+    })
+    await deleteSandboxTournament(workspace.sandboxTournamentId)
+  }
+
+  return getDemoContext()
+}
 
 export async function touchDemoWorkspace(workspaceId: string) {
   const user = await ensureLocalUser()
@@ -263,7 +300,7 @@ export async function getAuthorizedDemoSandbox(sandboxTournamentId: string) {
   })
 
   if (!workspace?.sandboxTournament || !workspace.sandboxTournament.isDemoSandbox) {
-    throw new Error("El espacio demo no existe, venció o no te pertenece.")
+    redirect("/campeonato/demo")
   }
 
   const activity = await touchDemoWorkspace(workspace.id)

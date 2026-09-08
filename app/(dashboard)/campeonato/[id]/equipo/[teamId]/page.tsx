@@ -12,6 +12,8 @@ import {
 import { PlayerList } from "./components/PlayerList"
 import { TeamActions } from "./components/TeamActions"
 import { authorizeTournamentRead } from "@/lib/demo-workspace"
+import { getAuthorizedDemoSandbox } from "@/lib/demo-workspace"
+import { DemoSandboxNotice } from "../../components/DemoSandboxNotice"
 
 export async function generateMetadata({ params }: { params: Promise<{ id: string; teamId: string }> }) {
   const { id, teamId } = await params
@@ -43,6 +45,7 @@ export default async function TeamDetailPage({ params }: { params: Promise<{ id:
         select: {
           id: true,
           name: true,
+          isDemoSandbox: true,
         },
       },
       players: {
@@ -64,6 +67,9 @@ export default async function TeamDetailPage({ params }: { params: Promise<{ id:
       </div>
     )
   }
+  const demoContext = team.tournament.isDemoSandbox
+    ? await getAuthorizedDemoSandbox(id)
+    : null
 
   return (
     <div className="space-y-6 p-6">
@@ -86,6 +92,7 @@ export default async function TeamDetailPage({ params }: { params: Promise<{ id:
           </BreadcrumbItem>
         </BreadcrumbList>
       </Breadcrumb>
+      {demoContext ? <DemoSandboxNotice expiresAt={demoContext.workspace.expiresAt} /> : null}
 
       <div className="rounded-xl border bg-card p-6">
         <div className="flex flex-col gap-6 sm:flex-row sm:items-center">

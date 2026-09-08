@@ -13,6 +13,8 @@ import {
 import { FixtureList } from "../components/FixtureList"
 import { getTournamentFechas, getTournamentTeams } from "../actions"
 import { authorizeTournamentRead } from "@/lib/demo-workspace"
+import { getAuthorizedDemoSandbox } from "@/lib/demo-workspace"
+import { DemoSandboxNotice } from "../components/DemoSandboxNotice"
 
 export async function generateMetadata({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params
@@ -42,6 +44,9 @@ export default async function TournamentFixturePage({
   if (!tournament) {
     return <div className="p-6">Campeonato no encontrado.</div>
   }
+  const demoContext = tournament.isDemoSandbox
+    ? await getAuthorizedDemoSandbox(id)
+    : null
 
   const fechas = await getTournamentFechas(id)
   const teams = await getTournamentTeams(id)
@@ -67,6 +72,7 @@ export default async function TournamentFixturePage({
           </BreadcrumbItem>
         </BreadcrumbList>
       </Breadcrumb>
+      {demoContext ? <DemoSandboxNotice expiresAt={demoContext.workspace.expiresAt} /> : null}
 
       <div className="rounded-xl border bg-card p-6">
         <div className="flex flex-col gap-6 sm:flex-row sm:items-center">
