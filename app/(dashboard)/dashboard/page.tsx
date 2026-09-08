@@ -35,11 +35,11 @@ export default async function Page() {
 
   const [tournamentCount, venueCount, refereeCount, recentTournaments] = localUser
     ? await Promise.all([
-        prisma.tournament.count({ where: { organizerId: localUser.id } }),
+        prisma.tournament.count({ where: { organizerId: localUser.id, isDemoSandbox: false } }),
         prisma.venue.count({ where: { ownerId: localUser.id } }),
         prisma.referee.count({ where: { ownerId: localUser.id } }),
         prisma.tournament.findMany({
-          where: { organizerId: localUser.id },
+          where: { organizerId: localUser.id, isDemoSandbox: false },
           orderBy: { createdAt: "desc" },
           take: 5,
           include: {

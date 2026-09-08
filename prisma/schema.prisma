@@ -45,6 +45,7 @@ model Tournament {
   name               String
   slug               String             @unique
   demoKey            String?            @unique
+  isDemoSandbox      Boolean            @default(false)
   imageUrl           String?
   status             TournamentStatus   @default(UPCOMING)
   tiebreakerCriteria TiebreakerCriteria @default(GOALS_FOR)
@@ -66,6 +67,7 @@ model Tournament {
   teams  Team[]
   fechas Fecha[]
   demoWorkspacesAsTemplate DemoWorkspace[] @relation("DemoWorkspaceTemplate")
+  demoWorkspaceAsSandbox DemoWorkspace? @relation("DemoWorkspaceSandbox")
 }
 
 // --- Espacio temporal privado para explorar el campeonato demo ---
@@ -81,6 +83,9 @@ model DemoWorkspace {
 
   templateTournamentId String
   templateTournament Tournament @relation("DemoWorkspaceTemplate", fields: [templateTournamentId], references: [id], onDelete: Cascade)
+
+  sandboxTournamentId String? @unique
+  sandboxTournament Tournament? @relation("DemoWorkspaceSandbox", fields: [sandboxTournamentId], references: [id], onDelete: Cascade)
 
   @@unique([userId, templateTournamentId])
   @@index([expiresAt])

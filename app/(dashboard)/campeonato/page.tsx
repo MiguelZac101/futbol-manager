@@ -6,7 +6,7 @@ import { getOrganizerVenues, getOrganizerReferees } from "./actions"
 export default async function CampeonatoPage() {
   const [tournaments, demoTournament] = await Promise.all([
     prisma.tournament.findMany({
-      where: { demoKey: null },
+      where: { demoKey: null, isDemoSandbox: false },
       orderBy: { createdAt: "desc" },
     }),
     prisma.tournament.findUnique({
