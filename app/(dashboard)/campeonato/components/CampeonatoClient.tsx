@@ -19,6 +19,7 @@ interface Option {
 interface CampeonatoClientProps {
   tournaments: Tournament[]
   demoTournament: Tournament | null
+  activeDemoSandboxId: string | null
   venues: Option[]
   referees: Option[]
 }
@@ -26,6 +27,7 @@ interface CampeonatoClientProps {
 export function CampeonatoClient({
   tournaments: initialTournaments,
   demoTournament,
+  activeDemoSandboxId,
   venues,
   referees,
 }: CampeonatoClientProps) {
@@ -43,6 +45,7 @@ export function CampeonatoClient({
       <TournamentList 
         tournaments={tournaments}
         demoTournament={demoTournament}
+        activeDemoSandboxId={activeDemoSandboxId}
         onCreate={() => setOpen(true)}
       />
 

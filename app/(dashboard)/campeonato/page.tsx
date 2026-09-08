@@ -6,7 +6,8 @@ import { ensureLocalUser } from "@/lib/current-user"
 
 export default async function CampeonatoPage() {
   const organizer = await ensureLocalUser()
-  const [tournaments, demoTournament] = await Promise.all([
+  const now = new Date()
+  const [tournaments, demoTournament, activeDemoWorkspace] = await Promise.all([
     prisma.tournament.findMany({
       where: { demoKey: null, isDemoSandbox: false, organizerId: organizer.id },
       orderBy: { createdAt: "desc" },
@@ -19,6 +20,14 @@ export default async function CampeonatoPage() {
         imageUrl: true,
       },
     }),
+    prisma.demoWorkspace.findFirst({
+      where: {
+        userId: organizer.id,
+        expiresAt: { gt: now },
+        sandboxTournamentId: { not: null },
+      },
+      select: { sandboxTournamentId: true },
+    }),
   ])
   const venues = await getOrganizerVenues()
   const referees = await getOrganizerReferees()
@@ -27,6 +36,7 @@ export default async function CampeonatoPage() {
     <CampeonatoClient
       tournaments={tournaments}
       demoTournament={demoTournament}
+      activeDemoSandboxId={activeDemoWorkspace?.sandboxTournamentId ?? null}
       venues={venues}
       referees={referees}
     />

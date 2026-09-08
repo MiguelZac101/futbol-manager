@@ -14,12 +14,14 @@ interface Tournament {
 interface TournamentListProps {
   tournaments: Tournament[]
   demoTournament: Tournament | null
+  activeDemoSandboxId: string | null
   onCreate?: () => void
 }
 
 export function TournamentList({
   tournaments,
   demoTournament,
+  activeDemoSandboxId,
   onCreate,
 }: TournamentListProps) {
   return (
@@ -40,7 +42,7 @@ export function TournamentList({
 
       {demoTournament ? (
         <Link
-          href="/campeonato/demo"
+          href={activeDemoSandboxId ? `/campeonato/${activeDemoSandboxId}` : "/campeonato/demo"}
           title="Probar campeonato demo"
           className="flex flex-col items-center gap-3 rounded-2xl border border-primary/30 bg-primary/5 p-6 h-full min-h-45 transition-colors hover:bg-primary/10 cursor-pointer"
         >
