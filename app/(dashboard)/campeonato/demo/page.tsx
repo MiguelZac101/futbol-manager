@@ -1,10 +1,15 @@
 import Link from "next/link"
+import { redirect } from "next/navigation"
 import { FlaskConical } from "lucide-react"
 import { getDemoContext } from "@/lib/demo-workspace"
 import { Button } from "@/components/ui/button"
 
 export default async function DemoTournamentPage() {
   const { workspace, templateTournament, isNewOrExpired } = await getDemoContext()
+
+  if (workspace.sandboxTournamentId) {
+    redirect(`/campeonato/${workspace.sandboxTournamentId}`)
+  }
 
   return (
     <div className="mx-auto flex max-w-2xl flex-col items-center gap-6 p-6 text-center">

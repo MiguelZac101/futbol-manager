@@ -11,11 +11,16 @@ import {
 } from "@/components/ui/breadcrumb"
 import { PlayerList } from "./components/PlayerList"
 import { TeamActions } from "./components/TeamActions"
+import { authorizeTournamentRead } from "@/lib/demo-workspace"
 
 export async function generateMetadata({ params }: { params: Promise<{ id: string; teamId: string }> }) {
-  const { teamId } = await params
-  const team = await prisma.team.findUnique({
-    where: { id: teamId },
+  const { id, teamId } = await params
+  await authorizeTournamentRead(id)
+  const team = await prisma.team.findFirst({
+    where: {
+      id: teamId,
+      tournamentId: id,
+    },
     select: { name: true },
   })
 
@@ -26,9 +31,13 @@ export async function generateMetadata({ params }: { params: Promise<{ id: strin
 
 export default async function TeamDetailPage({ params }: { params: Promise<{ id: string; teamId: string }> }) {
   const { id, teamId } = await params
+  await authorizeTournamentRead(id)
 
-  const team = await prisma.team.findUnique({
-    where: { id: teamId },
+  const team = await prisma.team.findFirst({
+    where: {
+      id: teamId,
+      tournamentId: id,
+    },
     include: {
       tournament: {
         select: {

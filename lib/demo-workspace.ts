@@ -276,3 +276,20 @@ export async function getAuthorizedDemoSandbox(sandboxTournamentId: string) {
     sandboxTournament: workspace.sandboxTournament,
   }
 }
+
+export async function authorizeTournamentRead(tournamentId: string) {
+  const tournament = await prisma.tournament.findUnique({
+    where: { id: tournamentId },
+    select: { isDemoSandbox: true },
+  })
+
+  if (!tournament) {
+    return false
+  }
+
+  if (tournament.isDemoSandbox) {
+    await getAuthorizedDemoSandbox(tournamentId)
+  }
+
+  return true
+}

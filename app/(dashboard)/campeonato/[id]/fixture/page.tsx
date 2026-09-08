@@ -12,9 +12,11 @@ import {
 } from "@/components/ui/breadcrumb"
 import { FixtureList } from "../components/FixtureList"
 import { getTournamentFechas, getTournamentTeams } from "../actions"
+import { authorizeTournamentRead } from "@/lib/demo-workspace"
 
 export async function generateMetadata({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params
+  await authorizeTournamentRead(id)
   const tournament = await prisma.tournament.findUnique({
     where: { id },
     select: { name: true },
@@ -31,6 +33,7 @@ export default async function TournamentFixturePage({
   params: Promise<{ id: string }>
 }) {
   const { id } = await params
+  await authorizeTournamentRead(id)
 
   const tournament = await prisma.tournament.findUnique({
     where: { id },
