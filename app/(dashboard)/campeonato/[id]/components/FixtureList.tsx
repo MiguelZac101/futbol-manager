@@ -459,8 +459,8 @@ export function FixtureList({ tournamentId, initialFechas, teamCount }: FixtureL
   }
 
   return (
-    <div className="rounded-xl border bg-card p-4">
-      <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+    <div className="sm:rounded-xl sm:border sm:bg-card sm:p-4">
+      <div className="mb-4 flex flex-col gap-3 px-4 pt-4 sm:flex-row sm:items-center sm:justify-between sm:px-0 sm:pt-0">
         <div className="flex items-center gap-2">
           <CalendarDays className="h-4 w-4 text-muted-foreground" />
           <h2 className="text-lg font-semibold">Fixture</h2>
@@ -480,10 +480,10 @@ export function FixtureList({ tournamentId, initialFechas, teamCount }: FixtureL
         ) : null}
       </div>
 
-      {error ? <p className="mb-4 text-sm text-destructive">{error}</p> : null}
+      {error ? <p className="mb-4 px-4 text-sm text-destructive sm:px-0">{error}</p> : null}
 
       {fechas.length === 0 ? (
-        <div className="rounded-lg border border-dashed p-6 text-center text-sm text-muted-foreground">
+        <div className="mx-4 rounded-lg border border-dashed p-6 text-center text-sm text-muted-foreground sm:mx-0">
           Todavía no hay fechas creadas para este torneo.
         </div>
       ) : (
