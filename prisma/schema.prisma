@@ -23,6 +23,7 @@ model User {
   tournaments Tournament[]
   venues      Venue[]
   referees    Referee[]
+  demoWorkspaces DemoWorkspace[]
 }
 
 enum TournamentStatus {
@@ -64,6 +65,25 @@ model Tournament {
 
   teams  Team[]
   fechas Fecha[]
+  demoWorkspacesAsTemplate DemoWorkspace[] @relation("DemoWorkspaceTemplate")
+}
+
+// --- Espacio temporal privado para explorar el campeonato demo ---
+model DemoWorkspace {
+  id String @id @default(cuid())
+  expiresAt DateTime
+  lastActiveAt DateTime @default(now())
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  userId String
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  templateTournamentId String
+  templateTournament Tournament @relation("DemoWorkspaceTemplate", fields: [templateTournamentId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, templateTournamentId])
+  @@index([expiresAt])
 }
 
 // --- Cancha/campo (reutilizable entre torneos del mismo organizador) ---

@@ -1,46 +1,12 @@
 // app/(dashboard)/campeonato/actions.ts
 "use server"
 
-import { auth, currentUser } from "@clerk/nextjs/server"
 import { prisma } from "@/lib/prisma"
+import { ensureLocalUser } from "@/lib/current-user"
 import { revalidatePath } from "next/cache"
 import { z } from "zod"
 import { tournamentSchema } from "./components/schema"
 import { slugify } from "@/lib/slug"
-
-async function ensureLocalUser() {
-  const { userId } = await auth()
-
-  if (!userId) {
-    throw new Error("No hay usuario autenticado")
-  }
-
-  const clerkUser = await currentUser()
-
-  if (!clerkUser) {
-    throw new Error("No se pudo obtener el usuario de Clerk")
-  }
-
-  const primaryEmail = clerkUser.emailAddresses[0]?.emailAddress ?? ""
-  const fullName = [clerkUser.firstName, clerkUser.lastName].filter(Boolean).join(" ") || "Usuario"
-
-  let localUser = await prisma.user.findUnique({
-    where: { clerkId: userId },
-  })
-
-  if (!localUser) {
-    localUser = await prisma.user.create({
-      data: {
-        clerkId: userId,
-        name: fullName,
-        email: primaryEmail || `${userId}@local.clerk`,
-        imageUrl: clerkUser.imageUrl || null,
-      },
-    })
-  }
-
-  return localUser
-}
 
 export async function getOrganizerVenues() {
   const owner = await ensureLocalUser()

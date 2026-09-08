@@ -39,17 +39,21 @@ export function TournamentList({
       </button>
 
       {demoTournament ? (
-        <div className="flex flex-col items-center gap-3 rounded-2xl border border-primary/30 bg-primary/5 p-6 h-full min-h-45">
+        <Link
+          href="/campeonato/demo"
+          title="Probar campeonato demo"
+          className="flex flex-col items-center gap-3 rounded-2xl border border-primary/30 bg-primary/5 p-6 h-full min-h-45 transition-colors hover:bg-primary/10 cursor-pointer"
+        >
           <div className="flex h-16 w-16 items-center justify-center rounded-full bg-primary/10">
             <FlaskConical className="h-8 w-8 text-primary" />
           </div>
           <div className="space-y-1 text-center">
             <span className="block text-sm font-medium">{demoTournament.name}</span>
             <span className="block text-xs text-muted-foreground">
-              Demo privada disponible próximamente
+              Probar demo privada
             </span>
           </div>
-        </div>
+        </Link>
       ) : null}
 
       {/* Cards de campeonatos existentes */}
