@@ -1,10 +1,10 @@
 import Link from "next/link"
 import { FlaskConical } from "lucide-react"
-import { getOrCreateDemoWorkspace } from "@/lib/demo-workspace"
+import { getDemoContext } from "@/lib/demo-workspace"
 import { Button } from "@/components/ui/button"
 
 export default async function DemoTournamentPage() {
-  const { workspace, templateTournament, isNewOrExpired } = await getOrCreateDemoWorkspace()
+  const { workspace, templateTournament, isNewOrExpired } = await getDemoContext()
 
   return (
     <div className="mx-auto flex max-w-2xl flex-col items-center gap-6 p-6 text-center">

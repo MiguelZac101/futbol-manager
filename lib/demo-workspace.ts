@@ -9,6 +9,19 @@ function getExpirationDate(now: Date) {
   return new Date(now.getTime() + DEMO_WORKSPACE_TTL_MS)
 }
 
+export async function getDemoTemplate() {
+  const templateTournament = await prisma.tournament.findUnique({
+    where: { demoKey: DEMO_TOURNAMENT_KEY },
+    select: { id: true, name: true },
+  })
+
+  if (!templateTournament) {
+    throw new Error("La plantilla del campeonato demo no está disponible.")
+  }
+
+  return templateTournament
+}
+
 async function cloneTemplateIntoSandbox(
   userId: string,
   templateTournamentId: string,
@@ -108,18 +121,8 @@ async function cloneTemplateIntoSandbox(
   })
 }
 
-export async function getOrCreateDemoWorkspace() {
-  const [user, templateTournament] = await Promise.all([
-    ensureLocalUser(),
-    prisma.tournament.findUnique({
-      where: { demoKey: DEMO_TOURNAMENT_KEY },
-      select: { id: true, name: true },
-    }),
-  ])
-
-  if (!templateTournament) {
-    throw new Error("La plantilla del campeonato demo no está disponible.")
-  }
+export async function getDemoContext() {
+  const [user, templateTournament] = await Promise.all([ensureLocalUser(), getDemoTemplate()])
 
   const now = new Date()
   const existingWorkspace = await prisma.demoWorkspace.findUnique({
@@ -210,5 +213,66 @@ export async function getOrCreateDemoWorkspace() {
     workspace,
     templateTournament,
     isNewOrExpired: true,
+  }
+}
+
+export const getOrCreateDemoWorkspace = getDemoContext
+
+export async function touchDemoWorkspace(workspaceId: string) {
+  const user = await ensureLocalUser()
+  const now = new Date()
+  const expiresAt = getExpirationDate(now)
+  const update = await prisma.demoWorkspace.updateMany({
+    where: {
+      id: workspaceId,
+      userId: user.id,
+      expiresAt: { gt: now },
+    },
+    data: {
+      lastActiveAt: now,
+      expiresAt,
+    },
+  })
+
+  if (update.count !== 1) {
+    throw new Error("El espacio demo no existe, venció o no te pertenece.")
+  }
+
+  return { expiresAt, lastActiveAt: now }
+}
+
+export async function getAuthorizedDemoSandbox(sandboxTournamentId: string) {
+  const user = await ensureLocalUser()
+  const now = new Date()
+  const workspace = await prisma.demoWorkspace.findFirst({
+    where: {
+      userId: user.id,
+      sandboxTournamentId,
+      expiresAt: { gt: now },
+    },
+    select: {
+      id: true,
+      sandboxTournament: {
+        select: {
+          id: true,
+          name: true,
+          isDemoSandbox: true,
+        },
+      },
+    },
+  })
+
+  if (!workspace?.sandboxTournament || !workspace.sandboxTournament.isDemoSandbox) {
+    throw new Error("El espacio demo no existe, venció o no te pertenece.")
+  }
+
+  const activity = await touchDemoWorkspace(workspace.id)
+
+  return {
+    workspace: {
+      id: workspace.id,
+      ...activity,
+    },
+    sandboxTournament: workspace.sandboxTournament,
   }
 }
