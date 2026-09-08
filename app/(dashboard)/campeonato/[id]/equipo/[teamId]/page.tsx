@@ -17,7 +17,6 @@ import { DemoSandboxNotice } from "../../components/DemoSandboxNotice"
 
 export async function generateMetadata({ params }: { params: Promise<{ id: string; teamId: string }> }) {
   const { id, teamId } = await params
-  await authorizeTournamentRead(id)
   const team = await prisma.team.findFirst({
     where: {
       id: teamId,
