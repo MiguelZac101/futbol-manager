@@ -57,9 +57,13 @@ NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY="pk_..."
 CLERK_SECRET_KEY="sk_..."
 
 UPLOADTHING_TOKEN="..."
+CRON_SECRET="un-secreto-largo-y-aleatorio"
 ```
 
 > Solo se necesita una `DATABASE_URL` (pooled, con `-pooler`); no se requiere `DIRECT_URL`.
+
+`CRON_SECRET` protege la limpieza diaria de sandboxes demo. En Vercel, configurarlo
+como variable de entorno de producción y asignar el mismo valor como secret del cron.
 
 ## Getting Started
 
@@ -104,3 +108,6 @@ pnpm exec prisma migrate dev --name nombre_del_cambio
 ## Despliegue
 
 La forma más simple de desplegar es usando [Vercel](https://vercel.com/new). Ver la [documentación de despliegue de Next.js](https://nextjs.org/docs/app/building-your-application/deploying) para más detalles.
+
+El archivo `vercel.json` programa `/api/cron/cleanup-demo` a las 03:00 UTC cada día.
+El job elimina sandboxes demo vencidos y sus imágenes alojadas en UploadThing.

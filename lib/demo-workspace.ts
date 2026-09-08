@@ -2,6 +2,7 @@ import { prisma } from "@/lib/prisma"
 import { ensureLocalUser } from "@/lib/current-user"
 import { randomUUID } from "node:crypto"
 import { redirect } from "next/navigation"
+import { UTApi } from "uploadthing/server"
 
 export const DEMO_TOURNAMENT_KEY = "main"
 export const DEMO_WORKSPACE_TTL_MS = 24 * 60 * 60 * 1000
@@ -10,7 +11,55 @@ function getExpirationDate(now: Date) {
   return new Date(now.getTime() + DEMO_WORKSPACE_TTL_MS)
 }
 
+function getUploadThingFileKey(imageUrl: string | null) {
+  if (!imageUrl || !URL.canParse(imageUrl)) {
+    return null
+  }
+
+  const url = new URL(imageUrl)
+  if (url.hostname !== "utfs.io") {
+    return null
+  }
+
+  const [, folder, fileKey] = url.pathname.split("/")
+  return folder === "f" && fileKey ? fileKey : null
+}
+
 async function deleteSandboxTournament(sandboxTournamentId: string) {
+  const sandbox = await prisma.tournament.findUnique({
+    where: { id: sandboxTournamentId },
+    select: {
+      imageUrl: true,
+      teams: {
+        select: {
+          imageUrl: true,
+          players: {
+            select: { photoUrl: true },
+          },
+        },
+      },
+    },
+  })
+
+  if (!sandbox) {
+    return
+  }
+
+  const fileKeys = [
+    getUploadThingFileKey(sandbox.imageUrl),
+    ...sandbox.teams.flatMap((team) => [
+      getUploadThingFileKey(team.imageUrl),
+      ...team.players.map((player) => getUploadThingFileKey(player.photoUrl)),
+    ]),
+  ].filter((fileKey): fileKey is string => fileKey !== null)
+
+  if (fileKeys.length > 0) {
+    const response = await new UTApi().deleteFiles(fileKeys)
+    if (!response.success) {
+      throw new Error("No se pudieron eliminar las imágenes temporales del sandbox.")
+    }
+  }
+
   await prisma.$transaction(async (tx) => {
     await tx.match.deleteMany({
       where: {
@@ -23,6 +72,34 @@ async function deleteSandboxTournament(sandboxTournamentId: string) {
       where: { id: sandboxTournamentId },
     })
   })
+}
+
+export async function cleanupExpiredDemoWorkspaces() {
+  const workspaces = await prisma.demoWorkspace.findMany({
+    where: { expiresAt: { lte: new Date() } },
+    select: {
+      id: true,
+      sandboxTournamentId: true,
+    },
+  })
+
+  for (const workspace of workspaces) {
+    if (workspace.sandboxTournamentId) {
+      await prisma.demoWorkspace.update({
+        where: { id: workspace.id },
+        data: { sandboxTournamentId: null },
+      })
+      await deleteSandboxTournament(workspace.sandboxTournamentId)
+    }
+
+    await prisma.demoWorkspace.delete({
+      where: { id: workspace.id },
+    })
+  }
+
+  return {
+    deletedWorkspaces: workspaces.length,
+  }
 }
 
 export async function getDemoTemplate() {
