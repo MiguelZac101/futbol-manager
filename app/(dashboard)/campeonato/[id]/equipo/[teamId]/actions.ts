@@ -2,7 +2,7 @@
 
 import { z } from "zod"
 import { prisma } from "@/lib/prisma"
-import { authorizeTournamentMutation } from "@/lib/demo-workspace"
+import { authorizeTournamentMutation, syncDemoImageAsset } from "@/lib/demo-workspace"
 
 const playerSchema = z.object({
   name: z.string().trim().min(2, "El nombre del jugador debe tener al menos 2 caracteres"),
@@ -48,6 +48,8 @@ export async function createPlayer(teamId: string, formData: FormData) {
     },
   })
 
+  await syncDemoImageAsset(team.tournamentId, null, player.photoUrl)
+
   return { success: true, player }
 }
 
@@ -66,7 +68,7 @@ export async function updatePlayer(playerId: string, formData: FormData) {
 
   const playerToUpdate = await prisma.player.findUnique({
     where: { id: playerId },
-    select: { team: { select: { tournamentId: true } } },
+    select: { photoUrl: true, team: { select: { tournamentId: true } } },
   })
 
   if (!playerToUpdate) {
@@ -88,6 +90,8 @@ export async function updatePlayer(playerId: string, formData: FormData) {
       photoUrl: true,
     },
   })
+
+  await syncDemoImageAsset(playerToUpdate.team.tournamentId, playerToUpdate.photoUrl, player.photoUrl)
 
   return { success: true, player }
 }

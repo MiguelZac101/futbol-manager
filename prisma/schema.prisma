@@ -87,8 +87,22 @@ model DemoWorkspace {
   sandboxTournamentId String? @unique
   sandboxTournament Tournament? @relation("DemoWorkspaceSandbox", fields: [sandboxTournamentId], references: [id], onDelete: Cascade)
 
+  assets DemoWorkspaceAsset[]
+
   @@unique([userId, templateTournamentId])
   @@index([expiresAt])
+}
+
+// --- Archivos subidos desde un sandbox demo (para limpieza sin tocar la plantilla) ---
+model DemoWorkspaceAsset {
+  id        String   @id @default(cuid())
+  fileKey   String
+  createdAt DateTime @default(now())
+
+  workspaceId String
+  workspace   DemoWorkspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+
+  @@unique([workspaceId, fileKey])
 }
 
 // --- Cancha/campo (reutilizable entre torneos del mismo organizador) ---

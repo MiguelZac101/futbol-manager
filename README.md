@@ -37,6 +37,18 @@ Sistema de gestión para **campeonatos relámpago de barrio**: organización de 
   - `/arbitros` — gestión de árbitros del organizador.
   - `/canchas` — gestión de canchas del organizador.
 - `app/t/[slug]` — página **pública** (sin autenticación) con el resumen de un campeonato: cancha/árbitro asignado, tabla de posiciones, equipos y próximos partidos. Cada campeonato genera un slug único y amigable a partir de su nombre.
+- `/campeonato/demo` — entrada al **campeonato demo** (requiere sesión).
+
+## Campeonato demo (sandbox privado)
+
+Existe **un solo** torneo plantilla (`Tournament.demoKey = "main"`, creado por `prisma/seed.ts`). Cada usuario autenticado que abre **Probar demo privada** obtiene una copia completa y privada —configuración, equipos, jugadores, fechas y partidos— vinculada a un `DemoWorkspace`:
+
+- Los cambios solo los ve ese usuario; la plantilla nunca se modifica.
+- El sandbox vence **24 horas después de la última actividad** y se recrea desde la plantilla al volver a entrar.
+- **Restablecer demo** borra el sandbox actual y genera uno nuevo (con confirmación).
+- Las imágenes subidas dentro del sandbox se registran en `DemoWorkspaceAsset` y se eliminan de UploadThing junto con el sandbox; las imágenes heredadas de la plantilla no se tocan.
+- Los sandboxes (`Tournament.isDemoSandbox = true`) no aparecen en listados ni métricas del dashboard, y no tienen enlace público.
+- El cron `/api/cron/cleanup-demo` (protegido con `CRON_SECRET`) elimina diariamente los sandboxes vencidos y sus archivos.
 
 ## Requisitos previos
 

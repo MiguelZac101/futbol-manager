@@ -7,7 +7,7 @@ import { revalidatePath } from "next/cache"
 import { z } from "zod"
 import { tournamentSchema } from "./components/schema"
 import { slugify } from "@/lib/slug"
-import { authorizeTournamentMutation } from "@/lib/demo-workspace"
+import { authorizeTournamentMutation, syncDemoImageAsset } from "@/lib/demo-workspace"
 
 export async function getOrganizerVenues() {
   const owner = await ensureLocalUser()
@@ -114,6 +114,16 @@ export async function updateTournament(id: string, formData: FormData) {
   }
 
   await authorizeTournamentMutation(id)
+
+  const previous = await prisma.tournament.findUnique({
+    where: { id },
+    select: { imageUrl: true },
+  })
+
+  if (!previous) {
+    return { error: "El campeonato no existe" }
+  }
+
   const tournament = await prisma.tournament.update({
     where: { id },
     data: {
@@ -130,6 +140,8 @@ export async function updateTournament(id: string, formData: FormData) {
       defaultRefereeId: true,
     },
   })
+
+  await syncDemoImageAsset(id, previous.imageUrl, tournament.imageUrl)
 
   revalidatePath("/campeonato")
   revalidatePath(`/campeonato/${id}`)

@@ -3,7 +3,7 @@
 import { revalidatePath } from "next/cache"
 import { z } from "zod"
 import { prisma } from "@/lib/prisma"
-import { authorizeTournamentMutation } from "@/lib/demo-workspace"
+import { authorizeTournamentMutation, syncDemoImageAsset } from "@/lib/demo-workspace"
 
 function getLocalDateString(date: Date) {
   const year = date.getFullYear()
@@ -1504,6 +1504,8 @@ export async function createTeam(tournamentId: string, formData: FormData) {
     },
   })
 
+  await syncDemoImageAsset(tournamentId, null, team.imageUrl)
+
   return { success: true, team }
 }
 
@@ -1521,7 +1523,7 @@ export async function updateTeam(teamId: string, formData: FormData) {
 
   const teamToUpdate = await prisma.team.findUnique({
     where: { id: teamId },
-    select: { tournamentId: true },
+    select: { tournamentId: true, imageUrl: true },
   })
 
   if (!teamToUpdate) {
@@ -1541,6 +1543,8 @@ export async function updateTeam(teamId: string, formData: FormData) {
       imageUrl: true,
     },
   })
+
+  await syncDemoImageAsset(teamToUpdate.tournamentId, teamToUpdate.imageUrl, team.imageUrl)
 
   revalidatePath("/campeonato")
   return { success: true, team }

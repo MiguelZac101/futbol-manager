@@ -25,33 +25,15 @@ function getUploadThingFileKey(imageUrl: string | null) {
   return folder === "f" && fileKey ? fileKey : null
 }
 
-async function deleteSandboxTournament(sandboxTournamentId: string) {
-  const sandbox = await prisma.tournament.findUnique({
-    where: { id: sandboxTournamentId },
-    select: {
-      imageUrl: true,
-      teams: {
-        select: {
-          imageUrl: true,
-          players: {
-            select: { photoUrl: true },
-          },
-        },
-      },
-    },
+// Solo se eliminan los archivos que el sandbox subió y registró en
+// DemoWorkspaceAsset. Las URLs heredadas de la plantilla (copiadas al clonar)
+// pertenecen a la plantilla y a otros sandboxes: nunca se borran desde acá.
+async function deleteSandboxTournament(workspaceId: string, sandboxTournamentId: string) {
+  const assets = await prisma.demoWorkspaceAsset.findMany({
+    where: { workspaceId },
+    select: { fileKey: true },
   })
-
-  if (!sandbox) {
-    return
-  }
-
-  const fileKeys = [
-    getUploadThingFileKey(sandbox.imageUrl),
-    ...sandbox.teams.flatMap((team) => [
-      getUploadThingFileKey(team.imageUrl),
-      ...team.players.map((player) => getUploadThingFileKey(player.photoUrl)),
-    ]),
-  ].filter((fileKey): fileKey is string => fileKey !== null)
+  const fileKeys = assets.map((asset) => asset.fileKey)
 
   if (fileKeys.length > 0) {
     const response = await new UTApi().deleteFiles(fileKeys)
@@ -61,6 +43,9 @@ async function deleteSandboxTournament(sandboxTournamentId: string) {
   }
 
   await prisma.$transaction(async (tx) => {
+    await tx.demoWorkspaceAsset.deleteMany({
+      where: { workspaceId },
+    })
     await tx.match.deleteMany({
       where: {
         fecha: {
@@ -72,6 +57,57 @@ async function deleteSandboxTournament(sandboxTournamentId: string) {
       where: { id: sandboxTournamentId },
     })
   })
+}
+
+// Registra una imagen subida dentro de un sandbox y elimina la anterior solo
+// si también fue subida por ese mismo sandbox (está rastreada como asset).
+export async function syncDemoImageAsset(
+  tournamentId: string,
+  previousImageUrl: string | null,
+  nextImageUrl: string | null
+) {
+  const tournament = await prisma.tournament.findUnique({
+    where: { id: tournamentId },
+    select: { isDemoSandbox: true },
+  })
+
+  if (!tournament?.isDemoSandbox) {
+    return
+  }
+
+  const workspace = await prisma.demoWorkspace.findUnique({
+    where: { sandboxTournamentId: tournamentId },
+    select: { id: true },
+  })
+
+  if (!workspace) {
+    return
+  }
+
+  const previousKey = getUploadThingFileKey(previousImageUrl)
+  const nextKey = getUploadThingFileKey(nextImageUrl)
+
+  if (previousKey && previousKey !== nextKey) {
+    const removed = await prisma.demoWorkspaceAsset.deleteMany({
+      where: { workspaceId: workspace.id, fileKey: previousKey },
+    })
+    if (removed.count > 0) {
+      await new UTApi().deleteFiles(previousKey)
+    }
+  }
+
+  if (nextKey && nextKey !== previousKey) {
+    await prisma.demoWorkspaceAsset.upsert({
+      where: {
+        workspaceId_fileKey: {
+          workspaceId: workspace.id,
+          fileKey: nextKey,
+        },
+      },
+      update: {},
+      create: { workspaceId: workspace.id, fileKey: nextKey },
+    })
+  }
 }
 
 export async function cleanupExpiredDemoWorkspaces() {
@@ -89,7 +125,7 @@ export async function cleanupExpiredDemoWorkspaces() {
         where: { id: workspace.id },
         data: { sandboxTournamentId: null },
       })
-      await deleteSandboxTournament(workspace.sandboxTournamentId)
+      await deleteSandboxTournament(workspace.id, workspace.sandboxTournamentId)
     }
 
     await prisma.demoWorkspace.delete({
@@ -274,7 +310,7 @@ export async function getDemoContext() {
       data: { sandboxTournamentId: null },
     })
 
-    await deleteSandboxTournament(existingWorkspace.sandboxTournamentId)
+    await deleteSandboxTournament(existingWorkspace.id, existingWorkspace.sandboxTournamentId)
   }
 
   const sandboxTournamentId = randomUUID()
@@ -326,7 +362,7 @@ export async function resetDemoWorkspace() {
       where: { id: workspace.id },
       data: { sandboxTournamentId: null },
     })
-    await deleteSandboxTournament(workspace.sandboxTournamentId)
+    await deleteSandboxTournament(workspace.id, workspace.sandboxTournamentId)
   }
 
   return getDemoContext()
@@ -413,12 +449,16 @@ export async function authorizeTournamentMutation(tournamentId: string) {
     ensureLocalUser(),
     prisma.tournament.findUnique({
       where: { id: tournamentId },
-      select: { organizerId: true, isDemoSandbox: true },
+      select: { organizerId: true, isDemoSandbox: true, demoKey: true },
     }),
   ])
 
   if (!tournament) {
     throw new Error("El campeonato no existe.")
+  }
+
+  if (tournament.demoKey) {
+    throw new Error("La plantilla del campeonato demo no se puede modificar.")
   }
 
   if (tournament.isDemoSandbox) {
